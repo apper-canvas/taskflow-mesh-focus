@@ -39,15 +39,56 @@ const [selectedStatus, setSelectedStatus] = useState("all")
 const [isTagManagerOpen, setIsTagManagerOpen] = useState(false)
   const [projects, setProjects] = useState([])
   
-  // Load tasks and projects
+// Load tasks and projects
   const loadTasks = async () => {
     try {
       setError("")
-const [taskData, projectData] = await Promise.all([
+      const [taskData, projectData] = await Promise.all([
         taskService.getAll(),
         projectService.getAll()
       ])
-      setTasks(taskData)
+      
+      // Also fetch recurring tasks and integrate them
+      try {
+        const { recurringTaskService } = await import('@/services/api/recurringTaskService');
+        const recurringTasks = await recurringTaskService.getAll();
+        
+        // Convert recurring tasks to task format for display
+        const recurringTasksAsMain = recurringTasks.map(recurringTask => ({
+          ...recurringTask,
+          Id: `recurring_${recurringTask.Id}`, // Unique identifier
+          title: recurringTask.name || recurringTask.title,
+          description: recurringTask.description || `Recurring: ${recurringTask.recurrence?.pattern || 'daily'}`,
+          category: "Personal", // Default category for recurring tasks
+          priority: "Medium", // Default priority
+          status: "Not Started",
+          completed: false,
+          isRecurring: true,
+          recurrence: recurringTask.recurrence,
+          tags: recurringTask.tags || [],
+          parentTaskId: recurringTask.taskId, // Link to original task
+          assignedTo: null,
+          projectId: null,
+          reminders: [],
+          estimatedTime: null,
+          actualTime: 0,
+          timeSpent: 0,
+          notes: `Recurring task based on pattern: ${recurringTask.recurrence?.pattern || 'daily'}`,
+          attachments: [],
+          linkedTasks: [],
+          createdOn: recurringTask.createdOn,
+          modifiedOn: recurringTask.modifiedOn,
+          _isRecurringTaskEntry: true // Flag to identify recurring task entries
+        }));
+        
+        // Combine regular tasks with recurring tasks
+        setTasks([...taskData, ...recurringTasksAsMain]);
+      } catch (recurringError) {
+        console.error("Failed to load recurring tasks:", recurringError);
+        // Still show regular tasks even if recurring tasks fail
+        setTasks(taskData);
+      }
+      
       setProjects(projectData)
     } catch (err) {
       console.error("Failed to load tasks:", err)
@@ -160,25 +201,36 @@ const handleSaveTask = async (taskId, taskData) => {
     try {
       setModalLoading(true)
       
-      if (taskId) {
-        // Update existing task or subtask
+      if (taskId && !taskId.toString().startsWith('recurring_')) {
+        // Update existing regular task or subtask
         const updatedTask = await taskService.update(taskId, taskData)
-        // Refresh all tasks to get updated parent progress if it's a subtask
-        const allTasks = await taskService.getAll()
-setTasks(allTasks)
+        // Refresh all tasks to get updated data including recurring tasks
+        await loadTasks()
         const isRecurring = taskData.isRecurring ? " (Recurring)" : ""
         toast.success(taskData.parentTaskId ? `Subtask updated successfully! ✅${isRecurring}` : `Task updated successfully! ✅${isRecurring}`)
+      } else if (taskId && taskId.toString().startsWith('recurring_')) {
+        // Handle recurring task updates
+        const { recurringTaskService } = await import('@/services/api/recurringTaskService');
+        const recurringId = taskId.toString().replace('recurring_', '');
+        await recurringTaskService.update(parseInt(recurringId), {
+          name: taskData.title,
+          title: taskData.title,
+          tags: taskData.tags,
+          recurrence: taskData.recurrence
+        });
+        await loadTasks() // Reload all tasks including recurring ones
+        toast.success("Recurring task updated successfully! ✅")
       } else {
         // Create new task or subtask
         if (taskData.parentTaskId) {
           const newSubtask = await taskService.createSubtask(taskData.parentTaskId, taskData)
-          // Refresh all tasks to get updated parent progress
-          const allTasks = await taskService.getAll()
-          setTasks(allTasks)
+          // Refresh all tasks including recurring tasks
+          await loadTasks()
           toast.success("Subtask created successfully! 🎉")
         } else {
           const newTask = await taskService.create(taskData)
-          setTasks(prev => [newTask, ...prev])
+          // Refresh all tasks to include any new recurring tasks that might be created
+          await loadTasks()
           toast.success("Task created successfully! 🎉")
         }
       }
@@ -193,12 +245,24 @@ setTasks(allTasks)
     }
   }
 
-  const handleDeleteTask = async (taskId) => {
+const handleDeleteTask = async (taskId) => {
     try {
       setModalLoading(true)
-      await taskService.delete(taskId)
-      setTasks(prev => prev.filter(task => task.Id !== taskId))
-      toast.success("Task deleted successfully")
+      
+      if (taskId.toString().startsWith('recurring_')) {
+        // Delete recurring task
+        const { recurringTaskService } = await import('@/services/api/recurringTaskService');
+        const recurringId = taskId.toString().replace('recurring_', '');
+        await recurringTaskService.delete(parseInt(recurringId));
+        toast.success("Recurring task deleted successfully")
+      } else {
+        // Delete regular task
+        await taskService.delete(taskId)
+        toast.success("Task deleted successfully")
+      }
+      
+      // Reload all tasks to reflect changes
+      await loadTasks()
       setIsModalOpen(false)
       setEditingTask(null)
     } catch (err) {
