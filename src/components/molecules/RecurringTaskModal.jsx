@@ -8,6 +8,7 @@ import Select from "@/components/atoms/Select";
 import Button from "@/components/atoms/Button";
 import Input from "@/components/atoms/Input";
 import TagSelector from "@/components/molecules/TagSelector";
+import toast from "@/utils/toast";
 import { cn } from "@/utils/cn";
 
 const RecurringTaskModal = ({ isOpen, onClose, task, onSave, onSaveAndClose, onDelete, isLoading = false }) => {
@@ -261,7 +262,9 @@ const generatePreviewDates = (recurrence, count = 5) => {
       }
     }
 try {
-      await onSave(task?.Id, taskData)
+// Only create recurring task when this button is clicked
+      await onSave(task?.Id, { ...taskData, isRecurring: true })
+      toast.success('Recurring task created successfully')
       onClose()
     } catch (error) {
       console.error('Failed to save recurring task:', error)

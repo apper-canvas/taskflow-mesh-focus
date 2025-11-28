@@ -248,23 +248,27 @@ const handleRecurringToggle = () => {
 
 const handleRecurringSave = async (taskId, recurringData) => {
     try {
-      await onSave(taskId, recurringData)
+      // Only create recurring task, don't create regular task
+      await onSave(taskId, { ...recurringData, isRecurring: true })
       setShowRecurringModal(false)
-      toast.success('Recurring task updated successfully')
+      toast.success('Recurring task created successfully')
     } catch (error) {
       console.error('Failed to save recurring task:', error)
-      toast.error('Failed to update recurring task')
+      toast.error('Failed to create recurring task')
     }
   }
 
-  const handleRecurringSaveAndClose = (taskId, recurringData) => {
-    setFormData(prev => ({
-      ...prev,
-      isRecurring: true,
-      recurrence: recurringData.recurrence
-    }))
-    setShowRecurringModal(false)
-    toast.success('Recurring schedule updated successfully')
+const handleRecurringSaveAndClose = async (taskId, recurringData) => {
+    try {
+      // Create recurring task and close modal
+      await onSave(taskId, { ...recurringData, isRecurring: true })
+      setShowRecurringModal(false)
+      toast.success('Recurring task created successfully')
+      onClose() // Close the main modal as well
+    } catch (error) {
+      console.error('Failed to create recurring task:', error)
+      toast.error('Failed to create recurring task')
+    }
   }
 
   const handleRecurringDelete = async (taskId) => {
@@ -371,14 +375,14 @@ const handleTagsChange = (newTags) => {
     if (!validateForm()) return
 
 const taskData = {
-...formData,
+      ...formData,
       projectId: formData.projectId ? parseInt(formData.projectId) : null,
       title: formData.title.trim(),
       description: formData.description.trim(),
       parentTaskId: formData.parentTaskId ? parseInt(formData.parentTaskId) : null,
-tags: formData.tags,
-      isRecurring: formData.isRecurring,
-      recurrence: formData.recurrence,
+      tags: formData.tags,
+      isRecurring: false, // Regular task creation should not be recurring
+      recurrence: null,   // Clear any recurrence data for regular tasks
       assignedTo: formData.assignedTo,
       reminders: formData.reminders,
       estimatedTime: formData.estimatedTime ? parseInt(formData.estimatedTime) : null,
@@ -386,10 +390,12 @@ tags: formData.tags,
       timeSpent: formData.timeSpent || 0,
       notes: formData.notes.trim(),
       attachments: formData.attachments,
-linkedTasks: formData.linkedTasks
+      linkedTasks: formData.linkedTasks
     };
 
+    // Only create regular task when this form is submitted
     await onSave(task?.Id, taskData)
+    toast.success('Task created successfully')
   }
   const handleDelete = async () => {
     await onDelete(task?.Id)
