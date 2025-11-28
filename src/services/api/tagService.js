@@ -1,156 +1,314 @@
-import tags from '../mockData/tags.json'
-
-// Simulated delay for realistic API feel
-const delay = (ms = 200) => new Promise(resolve => setTimeout(resolve, ms))
+import { getApperClient } from "@/services/apperClient";
+import { showToast } from "@/utils/toast";
 
 const tagService = {
   // Get all tags
   async getAll() {
-    await delay()
-    return tags.map(tag => ({ ...tag }))
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const response = await apperClient.fetchRecords('tag_c', {
+        fields: [
+          {"field": {"Name": "Id"}},
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "color_c"}},
+          {"field": {"Name": "icon_c"}},
+          {"field": {"Name": "CreatedOn"}},
+          {"field": {"Name": "ModifiedOn"}}
+        ],
+        orderBy: [{"fieldName": "Name", "sorttype": "ASC"}]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data.map(tag => ({
+        Id: tag.Id,
+        name: tag.Name,
+        color: tag.color_c || '#3b82f6',
+        icon: tag.icon_c || 'Tag',
+        createdAt: tag.CreatedOn,
+        updatedAt: tag.ModifiedOn
+      }));
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+      return [];
+    }
   },
 
   // Get tag by ID
   async getById(id) {
-    await delay()
-    const tag = tags.find(t => t.Id === parseInt(id))
-    if (!tag) {
-      throw new Error(`Tag with Id ${id} not found`)
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const response = await apperClient.getRecordById('tag_c', id, {
+        fields: [
+          {"field": {"Name": "Id"}},
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "color_c"}},
+          {"field": {"Name": "icon_c"}},
+          {"field": {"Name": "CreatedOn"}},
+          {"field": {"Name": "ModifiedOn"}}
+        ]
+      });
+
+      if (!response.success || !response.data) {
+        throw new Error(`Tag with Id ${id} not found`);
+      }
+
+      const tag = response.data;
+      return {
+        Id: tag.Id,
+        name: tag.Name,
+        color: tag.color_c || '#3b82f6',
+        icon: tag.icon_c || 'Tag',
+        createdAt: tag.CreatedOn,
+        updatedAt: tag.ModifiedOn
+      };
+    } catch (error) {
+      console.error("Error fetching tag:", error);
+      throw error;
     }
-    return { ...tag }
   },
 
   // Create new tag
   async create(tagData) {
-    await delay()
-    
-    // Validate required fields
-    if (!tagData.name || !tagData.name.trim()) {
-      throw new Error('Tag name is required')
-    }
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
 
-    // Check for duplicate names
-    if (tags.some(t => t.name.toLowerCase() === tagData.name.trim().toLowerCase())) {
-      throw new Error('Tag name already exists')
+      // Validate required fields
+      if (!tagData.name || !tagData.name.trim()) {
+        throw new Error('Tag name is required');
+      }
+
+      // Check for duplicate names
+      const existingTags = await this.getAll();
+      if (existingTags.some(t => t.name.toLowerCase() === tagData.name.trim().toLowerCase())) {
+        throw new Error('Tag name already exists');
+      }
+
+      const params = {
+        records: [{
+          Name: tagData.name.trim(),
+          color_c: tagData.color || '#3b82f6',
+          icon_c: tagData.icon || 'Tag'
+        }]
+      };
+
+      const response = await apperClient.createRecord('tag_c', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message || 'Failed to create tag');
+      }
+
+      if (response.results) {
+        const successful = response.results.filter(r => r.success);
+        const failed = response.results.filter(r => !r.success);
+        
+        if (failed.length > 0) {
+          console.error(`Failed to create ${failed.length} tags:`, failed);
+          failed.forEach(record => {
+            if (record.message) showToast.error(record.message);
+          });
+        }
+        
+        if (successful.length > 0) {
+          const newTag = successful[0].data;
+          showToast.success('Tag created successfully!');
+          return {
+            Id: newTag.Id,
+            name: tagData.name.trim(),
+            color: tagData.color || '#3b82f6',
+            icon: tagData.icon || 'Tag',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Error creating tag:", error);
+      showToast.error(error.message || 'Failed to create tag');
+      throw error;
     }
-    
-    const maxId = tags.length > 0 ? Math.max(...tags.map(t => t.Id)) : 0
-    const newTag = {
-      Id: maxId + 1,
-      name: tagData.name.trim(),
-      color: tagData.color || '#3b82f6',
-      icon: tagData.icon || 'Tag',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-    
-    tags.push(newTag)
-    this.saveToLocalStorage()
-    return { ...newTag }
   },
 
   // Update tag
   async update(id, updates) {
-    await delay()
-    const index = tags.findIndex(t => t.Id === parseInt(id))
-    if (index === -1) {
-      throw new Error(`Tag with Id ${id} not found`)
-    }
-
-    // Check for duplicate names (excluding current tag)
-    if (updates.name && updates.name.trim()) {
-      const existingTag = tags.find(t => 
-        t.Id !== parseInt(id) && 
-        t.name.toLowerCase() === updates.name.trim().toLowerCase()
-      )
-      if (existingTag) {
-        throw new Error('Tag name already exists')
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
       }
+
+      // Check for duplicate names (excluding current tag)
+      if (updates.name && updates.name.trim()) {
+        const existingTags = await this.getAll();
+        const existingTag = existingTags.find(t => 
+          t.Id !== parseInt(id) && 
+          t.name.toLowerCase() === updates.name.trim().toLowerCase()
+        );
+        if (existingTag) {
+          throw new Error('Tag name already exists');
+        }
+      }
+
+      const params = {
+        records: [{
+          Id: parseInt(id),
+          ...(updates.name && { Name: updates.name.trim() }),
+          ...(updates.color && { color_c: updates.color }),
+          ...(updates.icon && { icon_c: updates.icon })
+        }]
+      };
+
+      const response = await apperClient.updateRecord('tag_c', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message || 'Failed to update tag');
+      }
+
+      if (response.results) {
+        const successful = response.results.filter(r => r.success);
+        const failed = response.results.filter(r => !r.success);
+        
+        if (failed.length > 0) {
+          console.error(`Failed to update ${failed.length} tags:`, failed);
+          failed.forEach(record => {
+            if (record.message) showToast.error(record.message);
+          });
+        }
+        
+        if (successful.length > 0) {
+          showToast.success('Tag updated successfully!');
+          // Return updated tag data
+          return await this.getById(id);
+        }
+      }
+    } catch (error) {
+      console.error("Error updating tag:", error);
+      showToast.error(error.message || 'Failed to update tag');
+      throw error;
     }
-    
-    const updatedTag = {
-      ...tags[index],
-      ...updates,
-      name: updates.name ? updates.name.trim() : tags[index].name,
-      updatedAt: new Date().toISOString()
-    }
-    
-    tags[index] = updatedTag
-    this.saveToLocalStorage()
-    return { ...updatedTag }
   },
 
   // Delete tag
   async delete(id) {
-    await delay()
-    const index = tags.findIndex(t => t.Id === parseInt(id))
-    if (index === -1) {
-      throw new Error(`Tag with Id ${id} not found`)
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      // Get tag before deletion for return value
+      const tag = await this.getById(id);
+
+      const response = await apperClient.deleteRecord('tag_c', {
+        RecordIds: [parseInt(id)]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message || 'Failed to delete tag');
+      }
+
+      if (response.results) {
+        const successful = response.results.filter(r => r.success);
+        const failed = response.results.filter(r => !r.success);
+        
+        if (failed.length > 0) {
+          console.error(`Failed to delete ${failed.length} tags:`, failed);
+          failed.forEach(record => {
+            if (record.message) showToast.error(record.message);
+          });
+        }
+        
+        if (successful.length > 0) {
+          showToast.success('Tag deleted successfully!');
+          return tag;
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting tag:", error);
+      showToast.error(error.message || 'Failed to delete tag');
+      throw error;
     }
-    
-    const deletedTag = tags.splice(index, 1)[0]
-    this.saveToLocalStorage()
-    return { ...deletedTag }
   },
 
   // Search tags
   async search(query) {
-    await delay()
-    if (!query || !query.trim()) {
-      return this.getAll()
+    try {
+      if (!query || !query.trim()) {
+        return this.getAll();
+      }
+
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const response = await apperClient.fetchRecords('tag_c', {
+        fields: [
+          {"field": {"Name": "Id"}},
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "color_c"}},
+          {"field": {"Name": "icon_c"}},
+          {"field": {"Name": "CreatedOn"}},
+          {"field": {"Name": "ModifiedOn"}}
+        ],
+        where: [{
+          "FieldName": "Name",
+          "Operator": "Contains",
+          "Values": [query.trim()]
+        }],
+        orderBy: [{"fieldName": "Name", "sorttype": "ASC"}]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data.map(tag => ({
+        Id: tag.Id,
+        name: tag.Name,
+        color: tag.color_c || '#3b82f6',
+        icon: tag.icon_c || 'Tag',
+        createdAt: tag.CreatedOn,
+        updatedAt: tag.ModifiedOn
+      }));
+    } catch (error) {
+      console.error("Error searching tags:", error);
+      return [];
     }
-    
-    const searchTerm = query.toLowerCase().trim()
-    return tags
-      .filter(tag => tag.name.toLowerCase().includes(searchTerm))
-      .map(tag => ({ ...tag }))
   },
 
   // Get popular tags (most used)
   async getPopular(limit = 10) {
-    await delay()
-    // For now, return all tags sorted by name
-    // In real implementation, this would sort by usage count
-    return tags
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .slice(0, limit)
-      .map(tag => ({ ...tag }))
-  },
-
-  // Local storage management
-  saveToLocalStorage() {
     try {
-      localStorage.setItem("taskflow-tags", JSON.stringify(tags))
+      // In a real implementation, this would join with task tags and count usage
+      // For now, return all tags sorted by name
+      const allTags = await this.getAll();
+      return allTags.slice(0, limit);
     } catch (error) {
-      console.error("Failed to save tags to localStorage:", error)
-    }
-  },
-
-  loadFromLocalStorage() {
-    try {
-      const stored = localStorage.getItem("taskflow-tags")
-      if (stored) {
-        const loadedTags = JSON.parse(stored)
-        tags.length = 0
-        tags.push(...loadedTags)
-        return true
-      }
-    } catch (error) {
-      console.error("Failed to load tags from localStorage:", error)
-    }
-    return false
-  },
-
-  // Initialize storage
-  initialize() {
-    if (!this.loadFromLocalStorage()) {
-      this.saveToLocalStorage()
+      console.error("Error fetching popular tags:", error);
+      return [];
     }
   }
-}
+};
 
-// Initialize on import
-tagService.initialize()
+export default tagService;
 
 export default tagService

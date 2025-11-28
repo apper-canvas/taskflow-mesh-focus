@@ -7,6 +7,7 @@ import Button from "@/components/atoms/Button";
 import MentionDropdown from "@/components/molecules/MentionDropdown";
 import { showToast } from "@/utils/toast";
 import { cn } from "@/utils/cn";
+import { getApperClient } from "@/services/apperClient";
 
 // Safe SDK availability check
 const checkApperSDKAvailable = () => {
@@ -54,7 +55,7 @@ const CommentInput = ({
   submitText = "Post Comment",
   initialContent = "",
   enableTopicSelection = false,
-taskId = null,
+  taskId = null,
   contextComments = []
 }) => {
   const [content, setContent] = useState(initialContent);
@@ -70,8 +71,9 @@ taskId = null,
   const [apperClient, setApperClient] = useState(null);
   const [apperError, setApperError] = useState(false);
   const textareaRef = useRef(null);
+
   // Initialize ApperClient on component mount
-React.useEffect(() => {
+  React.useEffect(() => {
     const initSDK = async () => {
       // Wait for SDK to be available
       const sdkAvailable = await waitForSDK();
@@ -99,7 +101,7 @@ React.useEffect(() => {
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-const handleContentChange = (e) => {
+  const handleContentChange = (e) => {
     const value = e.target.value;
     setContent(value);
 
@@ -120,7 +122,6 @@ const handleContentChange = (e) => {
       setShowMentionDropdown(false);
     }
   };
-
 
   const handleMentionSelect = (member) => {
     const beforeMention = content.slice(0, mentionPosition);
@@ -174,7 +175,7 @@ const handleContentChange = (e) => {
     }
   };
 
-const handleGenerateSuggestions = async () => {
+  const handleGenerateSuggestions = async () => {
     if (!content.trim()) {
       showToast.warning('Please enter some text first to get reply suggestions');
       return;
@@ -182,7 +183,7 @@ const handleGenerateSuggestions = async () => {
 
     setIsGeneratingSuggestions(true);
     try {
-if (!apperClient) {
+      if (!apperClient) {
         console.info('apper_info: Got an error in this function: generate-reply-suggestions. ApperClient not initialized');
         showToast('Reply suggestions unavailable - ApperSDK not loaded', 'error');
         return;
@@ -215,7 +216,7 @@ if (!apperClient) {
     }
   };
 
-const handleSelectSuggestion = (suggestion) => {
+  const handleSelectSuggestion = (suggestion) => {
     setContent(suggestion);
     setShowSuggestions(false);
     setSuggestions([]);
@@ -227,7 +228,7 @@ const handleSelectSuggestion = (suggestion) => {
     setSuggestions([]);
   };
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Enhanced validation with user feedback
@@ -237,6 +238,7 @@ const handleSubmit = async (e) => {
     }
     
     if (isSubmitting) return;
+
     // Load topics when topic selection is enabled
     if (enableTopicSelection && taskId && availableTopics.length === 0) {
       try {
@@ -247,9 +249,9 @@ const handleSubmit = async (e) => {
       }
     }
 
-setIsSubmitting(true);
+    setIsSubmitting(true);
     
-try {
+    try {
       // Pass trimmed content to ensure no whitespace-only comments
       await onSubmit(content.trim(), mentions, null, null, null, selectedTopic);
       setContent('');
@@ -268,7 +270,7 @@ try {
     if (onCancel) onCancel();
   };
 
-return (
+  return (
     <motion.form
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -276,7 +278,7 @@ return (
       onSubmit={handleSubmit}
     >
       {/* User Avatar and Info Section */}
-<div className="flex items-start gap-4 mb-4">
+      <div className="flex items-start gap-4 mb-4">
         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-base font-semibold ring-2 ring-white shadow-lg">
           <ApperIcon name="User" size={20} />
         </div>
@@ -323,6 +325,7 @@ return (
           <p className="text-sm text-slate-600">Share your thoughts with the team</p>
         </div>
       </div>
+
       {/* AI Suggestions */}
       {showSuggestions && suggestions.length > 0 && (
         <motion.div
@@ -362,7 +365,7 @@ return (
       
       <div className="relative">
         <Textarea
-ref={textareaRef}
+          ref={textareaRef}
           value={content}
           onChange={handleContentChange}
           placeholder={placeholder}
@@ -375,7 +378,6 @@ ref={textareaRef}
           onCode={() => handleRichTextAction('code')}
           className="resize-none border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 rounded-lg text-base"
         />
-
         
         {/* Mention Dropdown */}
         {showMentionDropdown && (
@@ -419,7 +421,7 @@ ref={textareaRef}
         </div>
       )}
 
-<div className="space-y-4">
+      <div className="space-y-4">
         {/* Helper Text */}
         <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 px-3 py-2 rounded-lg">
           <ApperIcon name="Info" size={14} />
@@ -427,7 +429,7 @@ ref={textareaRef}
         </div>
         
         {/* Action Buttons */}
-<div className="flex items-center justify-between pt-4">
+        <div className="flex items-center justify-between pt-4">
           <div className="flex items-center gap-3">
             {/* AI Suggestions Button */}
             <Button

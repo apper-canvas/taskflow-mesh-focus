@@ -1,9 +1,11 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { useAuth } from "@/layouts/Root";
 import { projectService } from "@/services/api/projectService";
-import App from "@/App";
 import ApperIcon from "@/components/ApperIcon";
 import Loading from "@/components/ui/Loading";
+import Button from "@/components/atoms/Button";
 import Dashboard from "@/components/pages/Dashboard";
 import Templates from "@/components/pages/Templates";
 const Layout = () => {
@@ -14,6 +16,9 @@ const Layout = () => {
   useEffect(() => {
     loadRecentProjects();
   }, []);
+
+const { user } = useSelector(state => state.user);
+  const { logout } = useAuth();
 
   const loadRecentProjects = async () => {
     try {
@@ -28,8 +33,16 @@ const Layout = () => {
     }
   };
 
-  const handleProjectClick = (projectId) => {
+const handleProjectClick = (projectId) => {
     navigate(`/projects/${projectId}`);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -133,7 +146,7 @@ const Layout = () => {
                   <div className="px-3 py-1.5 text-sm text-gray-500">
                     Loading...
                   </div>
-                ) : recentProjects.length > 0 ? (
+) : recentProjects.length > 0 ? (
                   recentProjects.map((project) => (
                     <div 
                       key={project.Id}
@@ -150,6 +163,36 @@ const Layout = () => {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* User section with logout */}
+            <div className="border-t border-gray-200 p-4 mt-auto">
+              {user && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                      {user.firstName?.charAt(0) || user.emailAddress?.charAt(0) || 'U'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.emailAddress}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {user.accounts?.[0]?.companyName || 'TaskFlow User'}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost" 
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-gray-500 hover:text-gray-700 p-1"
+                    title="Logout"
+                  >
+                    <ApperIcon name="LogOut" size={16} />
+                  </Button>
+                </div>
+              )}
             </div>
           </nav>
         </div>

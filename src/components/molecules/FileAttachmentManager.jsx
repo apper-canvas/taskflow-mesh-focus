@@ -103,18 +103,36 @@ const FileAttachmentManager = ({
         }
 
         // Create file object for service
-        const fileData = {
-          name: file.name,
-          originalName: file.name,
-          size: file.size,
-          type: file.type,
-          url: URL.createObjectURL(file), // In real app, this would be uploaded URL
-          lastModified: file.lastModified || Date.now()
-        };
+// Use ApperFileFieldComponent integration if available
+        let fileData;
+        if (window.ApperSDK?.ApperFileUploader) {
+          // Process file using ApperFileFieldComponent's format
+          fileData = {
+            name: file.name,
+            originalName: file.name,
+            size: file.size,
+            type: file.type,
+            fileContent: file, // Store the actual File object for ApperFileFieldComponent
+            lastModified: file.lastModified || Date.now(),
+            isUploading: true
+          };
+        } else {
+          fileData = {
+            name: file.name,
+            originalName: file.name,
+            size: file.size,
+            type: file.type,
+            url: URL.createObjectURL(file), // Fallback for non-ApperSDK environments
+            lastModified: file.lastModified || Date.now()
+          };
+        }
 
-        // Save to service (this creates the file record)
-        const savedFile = await fileService.create(fileData);
-
+// Save to service (this creates the file record with ApperFileFieldComponent integration)
+        const savedFile = await fileService.create({
+          ...fileData,
+          taskId: attachments[0]?.taskId || null, // Inherit task context if available
+          projectId: attachments[0]?.projectId || null // Inherit project context if available
+        });
         // Add to attachments
         onChange([...attachments, savedFile]);
 
@@ -167,15 +185,15 @@ const FileAttachmentManager = ({
     e.target.value = '';
   };
 
-  const removeFile = async (fileId) => {
+const removeFile = async (fileId) => {
     try {
-      // Remove from service
+      // Remove from service using ApperClient integration
       await fileService.delete(fileId);
       
       // Update local state
       onChange(attachments.filter(file => file.Id !== fileId));
       
-      toast.success('File removed');
+      toast.success('File removed successfully');
     } catch (error) {
       console.error('Remove file error:', error);
       toast.error('Failed to remove file');
@@ -286,8 +304,8 @@ const FileAttachmentManager = ({
       {/* Attached Files */}
       <AnimatePresence>
         {attachments.map((file) => (
-          <motion.div
-            key={file.Id}
+<motion.div
+            key={file.Id || file.name}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -301,10 +319,11 @@ const FileAttachmentManager = ({
             
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {file.name || file.originalName}
+{file.name || file.originalName}
               </p>
               <p className="text-xs text-gray-500">
-                {formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString()}
+                {formatFileSize(file.size)} • {file.uploadedAt ? new Date(file.uploadedAt).toLocaleDateString() : 'Recently uploaded'}
+                {file.isUploading && <span className="text-blue-500 ml-2">Uploading...</span>}
               </p>
             </div>
             

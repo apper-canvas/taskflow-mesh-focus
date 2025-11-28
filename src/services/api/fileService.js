@@ -1,347 +1,474 @@
-// Mock file service for file operations
-let mockFiles = [];
-let mockFolders = [
-  { 
-    Id: 1, 
-    name: 'Documents', 
-    parentFolderId: null, 
-    projectId: null,
-    createdAt: new Date().toISOString(),
-    createdBy: 'system'
-  },
-  { 
-    Id: 2, 
-    name: 'Images', 
-    parentFolderId: null, 
-    projectId: null,
-    createdAt: new Date().toISOString(),
-    createdBy: 'system'
-  }
-];
-let mockExternalLinks = [];
+import { getApperClient } from "@/services/apperClient";
+import { showToast } from "@/utils/toast";
 
 const fileService = {
   // File operations
   async getAll() {
-    return mockFiles.filter(file => !file.isArchived).map(file => ({ ...file }));
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const response = await apperClient.fetchRecords('file_c', {
+        fields: [
+          {"field": {"Name": "Id"}},
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "original_name_c"}},
+          {"field": {"Name": "size_c"}},
+          {"field": {"Name": "type_c"}},
+          {"field": {"Name": "url_c"}},
+          {"field": {"Name": "category_c"}},
+          {"field": {"Name": "version_c"}},
+          {"field": {"Name": "folder_id_c"}},
+          {"field": {"Name": "task_id_c"}},
+          {"field": {"Name": "project_id_c"}},
+          {"field": {"Name": "uploaded_at_c"}},
+          {"field": {"Name": "uploaded_by_c"}},
+          {"field": {"Name": "is_archived_c"}},
+          {"field": {"Name": "file_content_c"}},
+          {"field": {"Name": "CreatedOn"}},
+          {"field": {"Name": "ModifiedOn"}}
+        ],
+        where: [{
+          "FieldName": "is_archived_c",
+          "Operator": "EqualTo",
+          "Values": [false]
+        }]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data.map(file => this.mapFileFromDatabase(file));
+    } catch (error) {
+      console.error("Error fetching files:", error);
+      return [];
+    }
   },
 
   async getById(id) {
-    const file = mockFiles.find(f => f.Id === id);
-    if (!file) throw new Error('File not found');
-    return { ...file };
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const response = await apperClient.getRecordById('file_c', id, {
+        fields: [
+          {"field": {"Name": "Id"}},
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "original_name_c"}},
+          {"field": {"Name": "size_c"}},
+          {"field": {"Name": "type_c"}},
+          {"field": {"Name": "url_c"}},
+          {"field": {"Name": "category_c"}},
+          {"field": {"Name": "version_c"}},
+          {"field": {"Name": "folder_id_c"}},
+          {"field": {"Name": "task_id_c"}},
+          {"field": {"Name": "project_id_c"}},
+          {"field": {"Name": "uploaded_at_c"}},
+          {"field": {"Name": "uploaded_by_c"}},
+          {"field": {"Name": "is_archived_c"}},
+          {"field": {"Name": "file_content_c"}},
+          {"field": {"Name": "CreatedOn"}},
+          {"field": {"Name": "ModifiedOn"}}
+        ]
+      });
+
+      if (!response.success || !response.data) {
+        throw new Error('File not found');
+      }
+
+      return this.mapFileFromDatabase(response.data);
+    } catch (error) {
+      console.error("Error fetching file:", error);
+      throw error;
+    }
   },
 
   async getByTaskId(taskId) {
-    return mockFiles.filter(file => 
-      file.taskId === taskId && !file.isArchived
-    ).map(file => ({ ...file }));
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const response = await apperClient.fetchRecords('file_c', {
+        fields: [
+          {"field": {"Name": "Id"}},
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "original_name_c"}},
+          {"field": {"Name": "size_c"}},
+          {"field": {"Name": "type_c"}},
+          {"field": {"Name": "url_c"}},
+          {"field": {"Name": "category_c"}},
+          {"field": {"Name": "task_id_c"}},
+          {"field": {"Name": "uploaded_at_c"}},
+          {"field": {"Name": "is_archived_c"}},
+          {"field": {"Name": "CreatedOn"}}
+        ],
+        where: [
+          {
+            "FieldName": "task_id_c",
+            "Operator": "EqualTo",
+            "Values": [parseInt(taskId)]
+          },
+          {
+            "FieldName": "is_archived_c",
+            "Operator": "EqualTo",
+            "Values": [false]
+          }
+        ]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data.map(file => this.mapFileFromDatabase(file));
+    } catch (error) {
+      console.error("Error fetching files by task:", error);
+      return [];
+    }
   },
 
   async getByProjectId(projectId) {
-    return mockFiles.filter(file => 
-      file.projectId === projectId && !file.isArchived
-    ).map(file => ({ ...file }));
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const response = await apperClient.fetchRecords('file_c', {
+        fields: [
+          {"field": {"Name": "Id"}},
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "original_name_c"}},
+          {"field": {"Name": "size_c"}},
+          {"field": {"Name": "type_c"}},
+          {"field": {"Name": "url_c"}},
+          {"field": {"Name": "category_c"}},
+          {"field": {"Name": "project_id_c"}},
+          {"field": {"Name": "uploaded_at_c"}},
+          {"field": {"Name": "is_archived_c"}},
+          {"field": {"Name": "CreatedOn"}}
+        ],
+        where: [
+          {
+            "FieldName": "project_id_c",
+            "Operator": "EqualTo",
+            "Values": [parseInt(projectId)]
+          },
+          {
+            "FieldName": "is_archived_c",
+            "Operator": "EqualTo",
+            "Values": [false]
+          }
+        ]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data.map(file => this.mapFileFromDatabase(file));
+    } catch (error) {
+      console.error("Error fetching files by project:", error);
+      return [];
+    }
   },
 
   async create(fileData) {
-    const maxId = mockFiles.length > 0 ? Math.max(...mockFiles.map(f => f.Id)) : 0;
-    const newFile = {
-      Id: maxId + 1,
-      name: fileData.name,
-      originalName: fileData.originalName || fileData.name,
-      size: fileData.size || 0,
-      type: fileData.type || 'application/octet-stream',
-      url: fileData.url || null,
-      category: fileData.category || 'other',
-      version: 1,
-      folderId: fileData.folderId || null,
-      taskId: fileData.taskId || null,
-      projectId: fileData.projectId || null,
-      uploadedAt: new Date().toISOString(),
-      uploadedBy: fileData.uploadedBy || 'current-user',
-      lastModified: fileData.lastModified || Date.now(),
-      comments: [],
-      sharedWith: [],
-      permissions: { read: true, write: true, delete: true },
-      isArchived: false,
-      archivedAt: null,
-      archivedBy: null,
-      accessLogs: [],
-      storageLocation: fileData.storageLocation || 'local'
-    };
-    
-    mockFiles.push(newFile);
-    
-    // Log access
-    this.logAccess(newFile.Id, 'upload', 'current-user');
-    
-    return { ...newFile };
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      // Process file content if it's a File object using ApperFileFieldComponent
+      let processedFileContent = null;
+      if (fileData.fileContent) {
+        if (window.ApperSDK?.ApperFileUploader) {
+          processedFileContent = window.ApperSDK.ApperFileUploader.toCreateFormat([fileData.fileContent]);
+        } else {
+          processedFileContent = fileData.fileContent;
+        }
+      }
+
+      const params = {
+        records: [{
+          Name: fileData.name,
+          original_name_c: fileData.originalName || fileData.name,
+          size_c: fileData.size || 0,
+          type_c: fileData.type || 'application/octet-stream',
+          url_c: fileData.url || null,
+          category_c: fileData.category || 'other',
+          version_c: 1,
+          folder_id_c: fileData.folderId || null,
+          task_id_c: fileData.taskId || null,
+          project_id_c: fileData.projectId || null,
+          uploaded_at_c: new Date().toISOString(),
+          uploaded_by_c: fileData.uploadedBy || 'current-user',
+          last_modified_c: fileData.lastModified ? new Date(fileData.lastModified).toISOString() : new Date().toISOString(),
+          shared_with_c: fileData.sharedWith ? JSON.stringify(fileData.sharedWith) : null,
+          permissions_c: fileData.permissions ? JSON.stringify(fileData.permissions) : JSON.stringify({ read: true, write: true, delete: true }),
+          is_archived_c: false,
+          archived_at_c: null,
+          archived_by_c: null,
+          access_logs_c: null,
+          storage_location_c: fileData.storageLocation || 'apper',
+          file_content_c: processedFileContent
+        }]
+      };
+
+      const response = await apperClient.createRecord('file_c', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message || 'Failed to create file');
+      }
+
+      if (response.results) {
+        const successful = response.results.filter(r => r.success);
+        const failed = response.results.filter(r => !r.success);
+        
+        if (failed.length > 0) {
+          console.error(`Failed to create ${failed.length} files:`, failed);
+          failed.forEach(record => {
+            if (record.message) showToast.error(record.message);
+          });
+        }
+        
+        if (successful.length > 0) {
+          const newFile = successful[0].data;
+          showToast.success('File uploaded successfully!');
+          return this.mapFileFromDatabase(newFile);
+        }
+      }
+    } catch (error) {
+      console.error("Error creating file:", error);
+      showToast.error(error.message || 'Failed to upload file');
+      throw error;
+    }
   },
 
   async update(id, updates) {
-    const index = mockFiles.findIndex(f => f.Id === id);
-    if (index === -1) throw new Error('File not found');
-    
-    const currentFile = mockFiles[index];
-    
-    // If name changed, increment version
-    if (updates.name && updates.name !== currentFile.name) {
-      updates.version = (currentFile.version || 1) + 1;
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const updateData = {
+        Id: parseInt(id)
+      };
+
+      if (updates.name !== undefined) updateData.Name = updates.name;
+      if (updates.originalName !== undefined) updateData.original_name_c = updates.originalName;
+      if (updates.category !== undefined) updateData.category_c = updates.category;
+      if (updates.url !== undefined) updateData.url_c = updates.url;
+      if (updates.folderId !== undefined) updateData.folder_id_c = updates.folderId;
+
+      // Increment version if name changed
+      if (updates.name !== undefined) {
+        const currentFile = await this.getById(id);
+        if (updates.name !== currentFile.name) {
+          updateData.version_c = (currentFile.version || 1) + 1;
+        }
+      }
+
+      const params = {
+        records: [updateData]
+      };
+
+      const response = await apperClient.updateRecord('file_c', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message || 'Failed to update file');
+      }
+
+      showToast.success('File updated successfully!');
+      return await this.getById(id);
+    } catch (error) {
+      console.error("Error updating file:", error);
+      showToast.error(error.message || 'Failed to update file');
+      throw error;
     }
-    
-    mockFiles[index] = {
-      ...currentFile,
-      ...updates,
-      lastModified: Date.now()
-    };
-    
-    // Log access
-    this.logAccess(id, 'update', 'current-user');
-    
-    return { ...mockFiles[index] };
   },
 
   async delete(id) {
-    const index = mockFiles.findIndex(f => f.Id === id);
-    if (index === -1) throw new Error('File not found');
-    
-    const deletedFile = mockFiles.splice(index, 1)[0];
-    
-    // Log access
-    this.logAccess(id, 'delete', 'current-user');
-    
-    return deletedFile;
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const response = await apperClient.deleteRecord('file_c', {
+        RecordIds: [parseInt(id)]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message || 'Failed to delete file');
+      }
+
+      showToast.success('File deleted successfully!');
+      return true;
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      showToast.error(error.message || 'Failed to delete file');
+      throw error;
+    }
   },
 
   async archive(id) {
-    const index = mockFiles.findIndex(f => f.Id === id);
-    if (index === -1) throw new Error('File not found');
-    
-    mockFiles[index] = {
-      ...mockFiles[index],
-      isArchived: true,
-      archivedAt: new Date().toISOString(),
-      archivedBy: 'current-user'
-    };
-    
-    // Log access
-    this.logAccess(id, 'archive', 'current-user');
-    
-    return { ...mockFiles[index] };
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const params = {
+        records: [{
+          Id: parseInt(id),
+          is_archived_c: true,
+          archived_at_c: new Date().toISOString(),
+          archived_by_c: 'current-user'
+        }]
+      };
+
+      const response = await apperClient.updateRecord('file_c', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message || 'Failed to archive file');
+      }
+
+      showToast.success('File archived successfully!');
+      return await this.getById(id);
+    } catch (error) {
+      console.error("Error archiving file:", error);
+      showToast.error(error.message || 'Failed to archive file');
+      throw error;
+    }
   },
 
   async restore(id) {
-    const index = mockFiles.findIndex(f => f.Id === id);
-    if (index === -1) throw new Error('File not found');
-    
-    mockFiles[index] = {
-      ...mockFiles[index],
-      isArchived: false,
-      archivedAt: null,
-      archivedBy: null
-    };
-    
-    // Log access
-    this.logAccess(id, 'restore', 'current-user');
-    
-    return { ...mockFiles[index] };
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const params = {
+        records: [{
+          Id: parseInt(id),
+          is_archived_c: false,
+          archived_at_c: null,
+          archived_by_c: null
+        }]
+      };
+
+      const response = await apperClient.updateRecord('file_c', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message || 'Failed to restore file');
+      }
+
+      showToast.success('File restored successfully!');
+      return await this.getById(id);
+    } catch (error) {
+      console.error("Error restoring file:", error);
+      showToast.error(error.message || 'Failed to restore file');
+      throw error;
+    }
   },
 
   async getArchived() {
-    return mockFiles.filter(file => file.isArchived).map(file => ({ ...file }));
-  },
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
 
-  async moveToFolder(fileId, folderId) {
-    const index = mockFiles.findIndex(f => f.Id === fileId);
-    if (index === -1) throw new Error('File not found');
-    
-    mockFiles[index] = {
-      ...mockFiles[index],
-      folderId: folderId
-    };
-    
-    // Log access
-    this.logAccess(fileId, 'move', 'current-user');
-    
-    return { ...mockFiles[index] };
-  },
+      const response = await apperClient.fetchRecords('file_c', {
+        fields: [
+          {"field": {"Name": "Id"}},
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "original_name_c"}},
+          {"field": {"Name": "size_c"}},
+          {"field": {"Name": "type_c"}},
+          {"field": {"Name": "archived_at_c"}},
+          {"field": {"Name": "archived_by_c"}},
+          {"field": {"Name": "CreatedOn"}}
+        ],
+        where: [{
+          "FieldName": "is_archived_c",
+          "Operator": "EqualTo",
+          "Values": [true]
+        }]
+      });
 
-  // Folder operations
-  async getFolders() {
-    return mockFolders.map(folder => ({ ...folder }));
-  },
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
 
-  async getFolderById(id) {
-    const folder = mockFolders.find(f => f.Id === id);
-    if (!folder) throw new Error('Folder not found');
-    return { ...folder };
-  },
-
-  async createFolder(folderData) {
-    const maxId = mockFolders.length > 0 ? Math.max(...mockFolders.map(f => f.Id)) : 0;
-    const newFolder = {
-      Id: maxId + 1,
-      name: folderData.name,
-      parentFolderId: folderData.parentFolderId || null,
-      projectId: folderData.projectId || null,
-      taskId: folderData.taskId || null,
-      createdAt: new Date().toISOString(),
-      createdBy: folderData.createdBy || 'current-user'
-    };
-    
-    mockFolders.push(newFolder);
-    return { ...newFolder };
-  },
-
-  async updateFolder(id, updates) {
-    const index = mockFolders.findIndex(f => f.Id === id);
-    if (index === -1) throw new Error('Folder not found');
-    
-    mockFolders[index] = {
-      ...mockFolders[index],
-      ...updates
-    };
-    
-    return { ...mockFolders[index] };
-  },
-
-  async deleteFolder(id) {
-    const index = mockFolders.findIndex(f => f.Id === id);
-    if (index === -1) throw new Error('Folder not found');
-    
-    // Check if folder has files
-    const filesInFolder = mockFiles.filter(file => file.folderId === id);
-    if (filesInFolder.length > 0) {
-      throw new Error('Cannot delete folder with files. Move or delete files first.');
-    }
-    
-    // Check for subfolders
-    const subfolders = mockFolders.filter(folder => folder.parentFolderId === id);
-    if (subfolders.length > 0) {
-      throw new Error('Cannot delete folder with subfolders. Delete subfolders first.');
-    }
-    
-    const deletedFolder = mockFolders.splice(index, 1)[0];
-    return deletedFolder;
-  },
-
-  async getFilesByFolder(folderId) {
-    return mockFiles.filter(file => 
-      file.folderId === folderId && !file.isArchived
-    ).map(file => ({ ...file }));
-  },
-
-  // External link operations
-  async getExternalLinks() {
-    return mockExternalLinks.map(link => ({ ...link }));
-  },
-
-  async getExternalLinksByTask(taskId) {
-    return mockExternalLinks.filter(link => link.taskId === taskId).map(link => ({ ...link }));
-  },
-
-  async getExternalLinksByProject(projectId) {
-    return mockExternalLinks.filter(link => link.projectId === projectId).map(link => ({ ...link }));
-  },
-
-  async createExternalLink(linkData) {
-    const maxId = mockExternalLinks.length > 0 ? Math.max(...mockExternalLinks.map(l => l.Id)) : 0;
-    const newLink = {
-      Id: maxId + 1,
-      title: linkData.title || 'External Link',
-      url: linkData.url,
-      description: linkData.description || '',
-      taskId: linkData.taskId || null,
-      projectId: linkData.projectId || null,
-      folderId: linkData.folderId || null,
-      createdAt: new Date().toISOString(),
-      createdBy: linkData.createdBy || 'current-user',
-      accessCount: 0,
-      lastAccessedAt: null,
-      isArchived: false,
-      archivedAt: null,
-      archivedBy: null
-    };
-    
-    mockExternalLinks.push(newLink);
-    return { ...newLink };
-  },
-
-  async updateExternalLink(id, updates) {
-    const index = mockExternalLinks.findIndex(l => l.Id === id);
-    if (index === -1) throw new Error('External link not found');
-    
-    mockExternalLinks[index] = {
-      ...mockExternalLinks[index],
-      ...updates
-    };
-    
-    return { ...mockExternalLinks[index] };
-  },
-
-  async deleteExternalLink(id) {
-    const index = mockExternalLinks.findIndex(l => l.Id === id);
-    if (index === -1) throw new Error('External link not found');
-    
-    const deletedLink = mockExternalLinks.splice(index, 1)[0];
-    return deletedLink;
-  },
-
-  async archiveExternalLink(id) {
-    const index = mockExternalLinks.findIndex(l => l.Id === id);
-    if (index === -1) throw new Error('External link not found');
-    
-    mockExternalLinks[index] = {
-      ...mockExternalLinks[index],
-      isArchived: true,
-      archivedAt: new Date().toISOString(),
-      archivedBy: 'current-user'
-    };
-    
-    return { ...mockExternalLinks[index] };
-  },
-
-  async restoreExternalLink(id) {
-    const index = mockExternalLinks.findIndex(l => l.Id === id);
-    if (index === -1) throw new Error('External link not found');
-    
-    mockExternalLinks[index] = {
-      ...mockExternalLinks[index],
-      isArchived: false,
-      archivedAt: null,
-      archivedBy: null
-    };
-    
-    return { ...mockExternalLinks[index] };
-  },
-
-  // Access logging
-  async logAccess(fileId, action, userId) {
-    const index = mockFiles.findIndex(f => f.Id === fileId);
-    if (index === -1) return;
-    
-    if (!mockFiles[index].accessLogs) {
-      mockFiles[index].accessLogs = [];
-    }
-    
-    mockFiles[index].accessLogs.push({
-      action,
-      userId,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator?.userAgent || 'Unknown'
-    });
-    
-    // Keep only last 100 logs per file
-    if (mockFiles[index].accessLogs.length > 100) {
-      mockFiles[index].accessLogs = mockFiles[index].accessLogs.slice(-100);
+      return response.data.map(file => this.mapFileFromDatabase(file));
+    } catch (error) {
+      console.error("Error fetching archived files:", error);
+      return [];
     }
   },
 
-  async getAccessLogs(fileId) {
-    const file = mockFiles.find(f => f.Id === fileId);
-    return file?.accessLogs || [];
+  // Helper method to map database file to application format
+  mapFileFromDatabase(file) {
+    return {
+      Id: file.Id,
+      name: file.Name,
+      originalName: file.original_name_c || file.Name,
+      size: file.size_c || 0,
+      type: file.type_c || 'application/octet-stream',
+      url: file.url_c,
+      category: file.category_c || 'other',
+      version: file.version_c || 1,
+      folderId: file.folder_id_c?.Id || file.folder_id_c,
+      taskId: file.task_id_c?.Id || file.task_id_c,
+      projectId: file.project_id_c?.Id || file.project_id_c,
+      uploadedAt: file.uploaded_at_c || file.CreatedOn,
+      uploadedBy: file.uploaded_by_c || 'unknown',
+      lastModified: file.last_modified_c || file.ModifiedOn,
+      sharedWith: file.shared_with_c ? this.parseJSON(file.shared_with_c) : [],
+      permissions: file.permissions_c ? this.parseJSON(file.permissions_c) : { read: true, write: true, delete: true },
+      isArchived: file.is_archived_c || false,
+      archivedAt: file.archived_at_c,
+      archivedBy: file.archived_by_c,
+      accessLogs: file.access_logs_c ? this.parseJSON(file.access_logs_c) : [],
+      storageLocation: file.storage_location_c || 'apper',
+      fileContent: file.file_content_c,
+      createdAt: file.CreatedOn,
+      updatedAt: file.ModifiedOn
+    };
+  },
+
+  // Helper method to safely parse JSON
+  parseJSON(jsonString) {
+    if (!jsonString) return null;
+    try {
+      return typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+    } catch {
+      return null;
+    }
   }
 };
+
+export default fileService;
 
 export default fileService;

@@ -35,7 +35,7 @@ const TagSelector = ({ selectedTags = [], onChange, placeholder = "Add tags...",
 
   const loadTags = async () => {
     try {
-      setLoading(true)
+setLoading(true)
       const tags = await tagService.getAll()
       setAvailableTags(tags)
     } catch (error) {
@@ -47,7 +47,7 @@ const TagSelector = ({ selectedTags = [], onChange, placeholder = "Add tags...",
 
   // Filter available tags based on search and exclude selected ones
   const filteredTags = availableTags.filter(tag => {
-    const matchesSearch = tag.name.toLowerCase().includes(searchTerm.toLowerCase())
+const matchesSearch = tag.name.toLowerCase().includes(searchTerm.toLowerCase())
     const notSelected = !selectedTags.some(selected => selected.Id === tag.Id)
     return matchesSearch && notSelected
   })
@@ -119,7 +119,7 @@ const TagSelector = ({ selectedTags = [], onChange, placeholder = "Add tags...",
           <AnimatePresence>
             {selectedTags.map((tag) => (
               <motion.div
-                key={tag.Id}
+key={tag.Id}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
@@ -127,7 +127,7 @@ const TagSelector = ({ selectedTags = [], onChange, placeholder = "Add tags...",
               >
                 <Badge
                   style={{ 
-                    backgroundColor: tag.color + '20',
+backgroundColor: tag.color + '20',
                     color: tag.color,
                     borderColor: tag.color
                   }}
@@ -190,12 +190,12 @@ const TagSelector = ({ selectedTags = [], onChange, placeholder = "Add tags...",
               <div className="py-2">
                 {filteredTags.map((tag) => (
                   <button
-                    key={tag.Id}
+key={tag.Id}
                     type="button"
                     onClick={() => handleTagSelect(tag)}
                     className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 transition-colors"
                   >
-                    <div
+<div
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: tag.color }}
                     />
