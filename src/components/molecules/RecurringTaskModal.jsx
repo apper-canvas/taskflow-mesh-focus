@@ -262,18 +262,47 @@ const generatePreviewDates = (recurrence, count = 5) => {
       }
     }
 try {
-// Only create recurring task when this button is clicked
-      await onSave(task?.Id, { ...taskData, isRecurring: true })
-      toast.success('Recurring task created successfully')
-      onClose()
+      // Import recurring task service for separate API call
+      const { recurringTaskService } = await import('@/services/api/recurringTaskService');
+      
+      // Create recurring task separately with explicit API call
+      const recurringData = {
+        name: taskData.title || task?.title || 'Recurring Task',
+        title: taskData.title || task?.title || 'Recurring Task',
+        tags: taskData.tags || task?.tags || [],
+        taskId: task?.Id,
+        recurrence: taskData
+      };
+      
+      await recurringTaskService.create(recurringData);
+      toast.success('Recurring task created successfully');
+      onClose();
     } catch (error) {
-      console.error('Failed to save recurring task:', error)
+      console.error('Failed to save recurring task:', error);
+      toast.error('Failed to create recurring task');
     }
   }
 
-  const handleDelete = async () => {
-    await onDelete(task?.Id)
-    setShowDeleteConfirm(false)
+const handleDelete = async () => {
+    try {
+      // Import recurring task service for separate API call
+      const { recurringTaskService } = await import('@/services/api/recurringTaskService');
+      
+      // Get existing recurring tasks for this task
+      const existingRecurring = await recurringTaskService.getByTaskId(task?.Id);
+      
+      // Delete all recurring tasks for this main task
+      for (const recurring of existingRecurring) {
+        await recurringTaskService.delete(recurring.Id);
+      }
+      
+      toast.success('Recurring task deleted successfully');
+      setShowDeleteConfirm(false);
+      onClose();
+    } catch (error) {
+      console.error('Failed to delete recurring task:', error);
+      toast.error('Failed to delete recurring task');
+    }
   }
 
   const isEdit = !!task?.Id

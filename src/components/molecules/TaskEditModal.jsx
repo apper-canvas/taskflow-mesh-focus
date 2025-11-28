@@ -248,47 +248,79 @@ const handleRecurringToggle = () => {
 
 const handleRecurringSave = async (taskId, recurringData) => {
     try {
-      // Only create recurring task, don't create regular task
-      await onSave(taskId, { ...recurringData, isRecurring: true })
-      setShowRecurringModal(false)
-      toast.success('Recurring task created successfully')
+      // Import recurring task service for separate API call
+      const { recurringTaskService } = await import('@/services/api/recurringTaskService');
+      
+      // Create recurring task with separate API call
+      const recurringTaskData = {
+        name: recurringData.title || 'Recurring Task',
+        title: recurringData.title || 'Recurring Task', 
+        tags: recurringData.tags || [],
+        taskId: taskId,
+        recurrence: recurringData
+      };
+      
+      await recurringTaskService.create(recurringTaskData);
+      setShowRecurringModal(false);
+      toast.success('Recurring task created successfully');
     } catch (error) {
-      console.error('Failed to save recurring task:', error)
-      toast.error('Failed to create recurring task')
+      console.error('Failed to save recurring task:', error);
+      toast.error('Failed to create recurring task');
+    }
+}
+
+  const handleRecurringSaveAndClose = async (taskId, recurringData) => {
+    try {
+      // Import recurring task service for separate API call
+      const { recurringTaskService } = await import('@/services/api/recurringTaskService');
+      
+      // Create recurring task with separate API call
+      const recurringTaskData = {
+        name: recurringData.title || 'Recurring Task',
+        title: recurringData.title || 'Recurring Task',
+        tags: recurringData.tags || [],
+        taskId: taskId,
+        recurrence: recurringData
+      };
+      
+      await recurringTaskService.create(recurringTaskData);
+      setShowRecurringModal(false);
+      toast.success('Recurring task created successfully');
+      onClose(); // Close the main modal as well
+    } catch (error) {
+      console.error('Failed to create recurring task:', error);
+      toast.error('Failed to create recurring task');
     }
   }
 
-const handleRecurringSaveAndClose = async (taskId, recurringData) => {
+const handleRecurringDelete = async (taskId) => {
     try {
-      // Create recurring task and close modal
-      await onSave(taskId, { ...recurringData, isRecurring: true })
-      setShowRecurringModal(false)
-      toast.success('Recurring task created successfully')
-      onClose() // Close the main modal as well
+      // Import recurring task service for separate API call
+      const { recurringTaskService } = await import('@/services/api/recurringTaskService');
+      
+      // Get existing recurring tasks for this task
+      const existingRecurring = await recurringTaskService.getByTaskId(taskId);
+      
+      // Delete all recurring tasks for this main task
+      for (const recurring of existingRecurring) {
+        await recurringTaskService.delete(recurring.Id);
+      }
+      
+      setShowRecurringModal(false);
+      onClose(); // Close the parent modal as well since recurring task is deleted
+      toast.success('Recurring task deleted successfully');
     } catch (error) {
-      console.error('Failed to create recurring task:', error)
-      toast.error('Failed to create recurring task')
-    }
-  }
-
-  const handleRecurringDelete = async (taskId) => {
-    try {
-      await onDelete(taskId)
-      setShowRecurringModal(false)
-      onClose() // Close the parent modal as well since task is deleted
-      toast.success('Recurring task deleted successfully')
-    } catch (error) {
-      console.error('Failed to delete recurring task:', error)
-      toast.error('Failed to delete recurring task')
+      console.error('Failed to delete recurring task:', error);
+      toast.error('Failed to delete recurring task');
     }
   }
 
 const handleEditRecurring = () => {
     // Always open the modal for editing or creating recurring schedule
-    setShowRecurringModal(true)
+    setShowRecurringModal(true);
   }
 
-const [previewFile, setPreviewFile] = useState(null);
+  const [previewFile, setPreviewFile] = useState(null);
 
   const handleAttachmentsChange = (newAttachments) => {
     setFormData(prev => ({
@@ -381,8 +413,8 @@ const taskData = {
       description: formData.description.trim(),
       parentTaskId: formData.parentTaskId ? parseInt(formData.parentTaskId) : null,
       tags: formData.tags,
-      isRecurring: false, // Regular task creation should not be recurring
-      recurrence: null,   // Clear any recurrence data for regular tasks
+      isRecurring: false, // Regular task creation is separate from recurring
+      recurrence: null,   // Recurring data handled separately
       assignedTo: formData.assignedTo,
       reminders: formData.reminders,
       estimatedTime: formData.estimatedTime ? parseInt(formData.estimatedTime) : null,
@@ -393,9 +425,9 @@ const taskData = {
       linkedTasks: formData.linkedTasks
     };
 
-    // Only create regular task when this form is submitted
-    await onSave(task?.Id, taskData)
-    toast.success('Task created successfully')
+    // Create main task with separate API call
+    await onSave(task?.Id, taskData);
+    toast.success(task?.Id ? 'Task updated successfully' : 'Task created successfully');
   }
   const handleDelete = async () => {
     await onDelete(task?.Id)
@@ -904,8 +936,8 @@ rows={4}
 {/* Recurring Task Configuration Modal */}
 <RecurringTaskModal
         isOpen={showRecurringModal}
-        onClose={() => setShowRecurringModal(false)}
-        task={formData.isRecurring || (task?.isRecurring && task?.recurrence) ? { 
+onClose={() => setShowRecurringModal(false)}
+        task={{ 
           ...formData, 
           Id: task?.Id,
           title: formData.title || task?.title || "",
@@ -914,7 +946,7 @@ rows={4}
           priority: formData.priority || task?.priority || "Medium",
           tags: formData.tags || task?.tags || [],
           recurrence: formData.recurrence || task?.recurrence || null
-        } : null}
+        }}
         onSave={handleRecurringSave}
         onSaveAndClose={handleRecurringSaveAndClose}
         onDelete={handleRecurringDelete}

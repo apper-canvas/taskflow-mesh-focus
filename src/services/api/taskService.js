@@ -182,24 +182,8 @@ const newTask = successful[0].data;
           showToast.success('Task created successfully! 🎉');
           
           // Handle recurring task creation separately
-          if (taskData.isRecurring && taskData.recurrence) {
-            const { recurringTaskService } = await import('./recurringTaskService');
-            const recurringData = {
-              name: taskData.title || taskData.name,
-              title: taskData.title || taskData.name,
-              tags: taskData.tags || [],
-              taskId: newTask.Id,
-              recurrence: taskData.recurrence
-            };
-            
-            try {
-              await recurringTaskService.create(recurringData);
-              console.log('Recurring task created successfully for task:', newTask.Id);
-            } catch (recurringError) {
-              console.error('Failed to create recurring task:', recurringError);
-              // Don't fail the main task creation, just log the error
-            }
-          }
+// Recurring tasks are now created separately via RecurringTaskService
+          // This decouples main task creation from recurring task creation
           
           return {
             Id: newTask.Id,
@@ -293,40 +277,8 @@ const newTask = successful[0].data;
 if (updates.parentTaskId !== undefined) updateData.parent_task_id_c = updates.parentTaskId;
 
       // Handle recurring task updates
-      if (updates.isRecurring !== undefined || updates.recurrence !== undefined) {
-        const { recurringTaskService } = await import('./recurringTaskService');
-        
-        try {
-          if (updates.isRecurring === false) {
-            // Delete existing recurring tasks for this task
-            const existingRecurring = await recurringTaskService.getByTaskId(id);
-            for (const recurring of existingRecurring) {
-              await recurringTaskService.delete(recurring.Id);
-            }
-          } else if (updates.isRecurring === true && updates.recurrence) {
-            // Update or create recurring task
-            const existingRecurring = await recurringTaskService.getByTaskId(id);
-            
-            if (existingRecurring.length > 0) {
-              // Update existing recurring task
-              await recurringTaskService.update(existingRecurring[0].Id, {
-                recurrence: updates.recurrence
-              });
-            } else {
-              // Create new recurring task
-              const recurringData = {
-                name: updates.title || 'Recurring Task',
-                taskId: id,
-                recurrence: updates.recurrence
-              };
-              await recurringTaskService.create(recurringData);
-            }
-          }
-        } catch (recurringError) {
-          console.error('Failed to handle recurring task update:', recurringError);
-          // Don't fail the main task update, just log the error
-        }
-      }
+// Recurring task management is now handled separately via RecurringTaskService
+      // UI components make explicit calls for recurring task operations
       // Handle attachments with file upload processing
       if (updates.attachments !== undefined) {
         let processedAttachments = null;
