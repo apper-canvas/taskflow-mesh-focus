@@ -64,9 +64,10 @@ const [taskData, projectData] = await Promise.all([
   // Filter tasks
   const filteredTasks = useMemo(() => {
 return tasks.filter(task => {
-      const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (task.tags && task.tags.some(tag => tag.name.toLowerCase().includes(searchTerm.toLowerCase())))
+      if (!task) return false;
+      const matchesSearch = (task.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (task.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (task.tags && task.tags.some(tag => (tag?.name || '').toLowerCase().includes(searchTerm.toLowerCase())))
       
       const matchesCategory = selectedCategory === "all" || task.category === selectedCategory
       
