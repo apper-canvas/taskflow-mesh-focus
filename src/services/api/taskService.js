@@ -8,7 +8,7 @@ export const taskService = {
         throw new Error("ApperClient not initialized");
       }
 
-      const response = await apperClient.fetchRecords('task_c', {
+const response = await apperClient.fetchRecords('task_c', {
         fields: [
           {"field": {"Name": "Id"}},
           {"field": {"Name": "Name"}},
@@ -22,9 +22,8 @@ export const taskService = {
           {"field": {"Name": "completed_c"}},
           {"field": {"Name": "completed_at_c"}},
           {"field": {"Name": "is_recurring_c"}},
-{"field": {"Name": "recurrence_c"}},
+          {"field": {"Name": "recurrence_c"}},
           {"field": {"Name": "reminders_c"}},
-          {"field": {"Name": "is_recurring_c"}},
           {"field": {"Name": "estimated_time_c"}},
           {"field": {"Name": "actual_time_c"}},
           {"field": {"Name": "time_spent_c"}},
