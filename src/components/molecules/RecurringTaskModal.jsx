@@ -262,9 +262,19 @@ const generatePreviewDates = (recurrence, count = 5) => {
       }
     }
 try {
-// Only create recurring task when this button is clicked
-      await onSave(task?.Id, { ...taskData, isRecurring: true })
-      toast.success('Recurring task created successfully')
+// For new tasks: create regular task first, then recurring task
+      if (!task?.Id) {
+        // Create regular task first
+        const regularTaskData = { ...taskData, isRecurring: false, recurrence: null }
+        await onSave(null, regularTaskData)
+        // Then create recurring task
+        await onSave(null, { ...taskData, isRecurring: true })
+        toast.success('Task and recurring schedule created successfully')
+      } else {
+        // For existing tasks: just update the recurring settings
+        await onSave(task.Id, { ...taskData, isRecurring: true })
+        toast.success('Recurring schedule updated successfully')
+      }
       onClose()
     } catch (error) {
       console.error('Failed to save recurring task:', error)
@@ -606,7 +616,7 @@ try {
               ) : (
                 <ApperIcon name="RotateCw" size={16} />
               )}
-              {isEdit ? "Update Recurring Task" : "Create Recurring Task"}
+{isEdit ? "Update Recurring Task" : "Save Task & Recurring Schedule"}
             </Button>
           </div>
         </div>
