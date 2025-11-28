@@ -275,7 +275,13 @@ try {
       };
       
       await recurringTaskService.create(recurringData);
-      toast.success('Recurring task created successfully');
+      toast.success('Recurring task created successfully! It will appear in your task list.');
+      
+      // Trigger a refresh of the parent component if callback provided
+      if (window.refreshTaskList) {
+        window.refreshTaskList();
+      }
+      
       onClose();
     } catch (error) {
       console.error('Failed to save recurring task:', error);

@@ -292,7 +292,7 @@ export class RecurringTaskService {
   transformFromAPI(data) {
     if (!data) return null;
 
-    return {
+return {
       Id: data.Id,
       name: data.Name || '',
       title: data.Name || '', // Support both for compatibility
@@ -307,10 +307,19 @@ export class RecurringTaskService {
         daysOfWeek: data.day_of_week_c ? this.parseDaysOfWeek(data.day_of_week_c) : [],
         monthlyDate: data.day_of_month_c || 1,
         endAfterOccurrences: data.occurrences_c || 10,
-        enabled: true
+        enabled: true,
+        type: data.recurrence_pattern_c || 'daily' // Ensure type is available
       },
       createdOn: data.CreatedOn,
-      modifiedOn: data.ModifiedOn
+      modifiedOn: data.ModifiedOn,
+      // Add fields for UI integration
+      category: 'Personal', // Default category for recurring tasks
+      priority: 'Medium', // Default priority
+      status: 'Not Started',
+      completed: false,
+      isRecurring: true,
+      description: `Recurring ${data.recurrence_pattern_c || 'daily'} task`,
+      nextOccurrence: data.start_date_c ? new Date(data.start_date_c).toISOString() : null
     };
   }
 

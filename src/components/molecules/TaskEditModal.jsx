@@ -262,14 +262,19 @@ const handleRecurringSave = async (taskId, recurringData) => {
       
       await recurringTaskService.create(recurringTaskData);
       setShowRecurringModal(false);
-      toast.success('Recurring task created successfully');
+      toast.success('Recurring task created successfully! It will appear in your task list.');
+      
+      // Trigger a refresh of the task list
+      if (window.refreshTaskList) {
+        window.refreshTaskList();
+      }
     } catch (error) {
       console.error('Failed to save recurring task:', error);
       toast.error('Failed to create recurring task');
     }
 }
 
-  const handleRecurringSaveAndClose = async (taskId, recurringData) => {
+const handleRecurringSaveAndClose = async (taskId, recurringData) => {
     try {
       // Import recurring task service for separate API call
       const { recurringTaskService } = await import('@/services/api/recurringTaskService');
@@ -285,7 +290,13 @@ const handleRecurringSave = async (taskId, recurringData) => {
       
       await recurringTaskService.create(recurringTaskData);
       setShowRecurringModal(false);
-      toast.success('Recurring task created successfully');
+      toast.success('Recurring task created successfully! It will appear in your task list.');
+      
+      // Trigger a refresh of the task list
+      if (window.refreshTaskList) {
+        window.refreshTaskList();
+      }
+      
       onClose(); // Close the main modal as well
     } catch (error) {
       console.error('Failed to create recurring task:', error);
