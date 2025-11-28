@@ -616,15 +616,16 @@ return [];
       }
       
       return linkedTasks;
-    } catch {
-return linkedTasks;
-    } catch {
+} catch {
       return [];
     }
   },
 
-// Template-related methods
-      const apperClient = getApperClient();
+  // Template-related methods
+  async getTaskTemplates() {
+    try {
+
+const apperClient = getApperClient();
       if (!apperClient) {
         throw new Error("ApperClient not initialized");
       }
