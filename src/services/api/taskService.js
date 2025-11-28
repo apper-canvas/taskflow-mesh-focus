@@ -876,6 +876,11 @@ const apperClient = getApperClient();
       showToast.error(error.message || 'Failed to import templates');
       throw error;
     }
+},
+
+  // Alias method for backward compatibility
+  async getTemplates() {
+    return await this.getTaskTemplates();
   }
 };
 
