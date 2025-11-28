@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { format, formatDistanceToNow } from "date-fns";
-import commentService, { addReaction, analyzeSentiment, buildCommentThreads, createComment, deleteComment, generateConversationSummary, getCommentStats, getCommentsByTaskId, markAsRead, removeReaction, searchComments, toggleLike, togglePin, toggleResolve, updateComment } from "@/services/api/commentService";
+import commentService, { buildCommentThreads, createComment, deleteComment, getCommentTopics, getCommentsByTaskId, getTeamMembers, isCommentEditable, updateComment } from "@/services/api/commentService";
 import { updateTaskCommentStats } from "@/services/api/taskService";
 import ApperIcon from "@/components/ApperIcon";
 import Select from "@/components/atoms/Select";
@@ -82,8 +82,9 @@ let filteredComments = comments;
     }
     
     // Apply author filter if different from search
-    if (filterType === 'author' && selectedAuthor && !searchQuery.trim()) {
-      filteredComments = await commentService.filterCommentsByAuthor(taskId, selectedAuthor);
+if (filterType === 'author' && selectedAuthor && !searchQuery.trim()) {
+      const allComments = await getCommentsByTaskId(taskId);
+      filteredComments = allComments.filter(comment => comment.authorName === selectedAuthor);
     }
 // Apply type filter
     switch (filterType) {
@@ -269,7 +270,7 @@ const handleAddReaction = async (commentId, emoji) => {
   };
 
 const RenderComment = ({ comment, isReply = false }) => {
-  const sentiment = analyzeSentiment(comment.content);
+// Sentiment analysis functionality would be implemented here
   
   const getSentimentColor = (sentimentType) => {
     switch (sentimentType) {
@@ -366,13 +367,13 @@ const RenderComment = ({ comment, isReply = false }) => {
                   <div className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-xs font-medium px-2.5 py-1 rounded-full">
                     <ApperIcon name="CheckCircle" size={12} />
                     Resolved
-                  </div>
+</div>
                 )}
                 {/* Enhanced Sentiment Indicator */}
-                {sentiment.confidence > 0.4 && (
-                  <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${getSentimentColor(sentiment.sentiment)}`}>
-                    <ApperIcon name={getSentimentIcon(sentiment.sentiment)} size={12} />
-                    <span className="capitalize">{sentiment.sentiment}</span>
+                {comment.sentiment && comment.sentimentConfidence > 0.4 && (
+                  <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${getSentimentColor(comment.sentiment)}`}>
+                    <ApperIcon name={getSentimentIcon(comment.sentiment)} size={12} />
+                    <span className="capitalize">{comment.sentiment}</span>
                   </div>
                 )}
               </div>
@@ -514,9 +515,28 @@ const RenderComment = ({ comment, isReply = false }) => {
                 </div>
                 <span className="text-sm font-semibold text-blue-900">Conversation Summary</span>
               </div>
-              {(() => {
-                const allComments = [comment, ...(comment.replies || [])];
-                const summary = generateConversationSummary(allComments);
+{(() => {
+                // Generate conversation summary from available data
+                const summary = (() => {
+                  const participants = [...new Set([comment.authorId, ...comment.replies.map(r => r.authorId)])];
+                  const allComments = [comment, ...comment.replies];
+                  const topics = [...new Set(allComments.map(c => c.topic).filter(Boolean))];
+                  
+                  // Calculate overall sentiment from available data
+                  const sentiments = allComments.filter(c => c.sentiment).map(c => c.sentiment);
+                  const overallSentiment = sentiments.length > 0 ? 
+                    (sentiments.filter(s => s === 'positive').length > sentiments.length / 2 ? 'positive' :
+                     sentiments.filter(s => s === 'negative').length > sentiments.length / 2 ? 'negative' : 'neutral') 
+                    : 'neutral';
+                  
+                  return {
+                    participantCount: participants.length,
+                    keyPoints: topics.length || Math.min(3, allComments.length), // Fallback to comment count
+                    overallSentiment,
+                    topics: topics.slice(0, 3)
+                  };
+                })();
+                
                 return (
                   <div className="space-y-3">
                     <div className="flex items-center gap-4 text-sm text-blue-800">
@@ -527,7 +547,7 @@ const RenderComment = ({ comment, isReply = false }) => {
                       </div>
                       <div className="flex items-center gap-1">
                         <ApperIcon name="Lightbulb" size={14} />
-                        <span className="font-medium">{summary.keyPoints.length}</span>
+                        <span className="font-medium">{summary.keyPoints}</span>
                         <span className="text-blue-600">key points</span>
                       </div>
                       <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
@@ -543,7 +563,7 @@ const RenderComment = ({ comment, isReply = false }) => {
                       <div className="flex items-center gap-2">
                         <ApperIcon name="Hash" size={14} className="text-blue-500" />
                         <div className="flex flex-wrap gap-1">
-                          {summary.topics.slice(0, 3).map((topic, idx) => (
+                          {summary.topics.map((topic, idx) => (
                             <span key={idx} className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
                               {topic}
                             </span>
