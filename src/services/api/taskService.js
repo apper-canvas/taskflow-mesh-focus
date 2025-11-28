@@ -523,4 +523,4 @@ export const updateTaskCommentStats = async (taskId, commentCount, hasUnread = f
     console.error('Error updating task comment stats:', error);
   }
 };
-taskService.initialize()
+// Service is ready to use - no initialization required
