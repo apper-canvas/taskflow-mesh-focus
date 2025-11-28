@@ -134,14 +134,14 @@ export const taskService = {
           completed_at_c: taskData.status === "Completed" ? new Date().toISOString() : null,
           is_recurring_c: taskData.isRecurring || false,
           recurrence_c: taskData.recurrence ? JSON.stringify(taskData.recurrence) : null,
-          reminders_c: taskData.reminders ? JSON.stringify(taskData.reminders) : null,
+reminders_c: taskData.reminders ? this.formatRemindersForDatabase(taskData.reminders) : null,
           estimated_time_c: taskData.estimatedTime || null,
           actual_time_c: taskData.actualTime || 0,
           time_spent_c: taskData.timeSpent || 0,
           is_tracking_c: false,
           tracking_started_at_c: null,
           notes_c: taskData.notes || "",
-          linked_tasks_c: taskData.linkedTasks ? JSON.stringify(taskData.linkedTasks) : null,
+linked_tasks_c: taskData.linkedTasks ? this.formatLinkedTasksForDatabase(taskData.linkedTasks) : null,
           external_links_c: taskData.externalLinks ? JSON.stringify(taskData.externalLinks) : null,
           comment_count_c: 0,
           has_unread_comments_c: false,
@@ -261,14 +261,14 @@ const newTask = successful[0].data;
       if (updates.isRecurring !== undefined) updateData.is_recurring_c = updates.isRecurring;
       if (updates.recurrence !== undefined) updateData.recurrence_c = updates.recurrence ? JSON.stringify(updates.recurrence) : null;
       if (updates.assignedTo !== undefined) updateData.assigned_to_c = updates.assignedTo;
-      if (updates.reminders !== undefined) updateData.reminders_c = updates.reminders ? JSON.stringify(updates.reminders) : null;
+if (updates.reminders !== undefined) updateData.reminders_c = updates.reminders ? this.formatRemindersForDatabase(updates.reminders) : null;
       if (updates.estimatedTime !== undefined) updateData.estimated_time_c = updates.estimatedTime;
       if (updates.actualTime !== undefined) updateData.actual_time_c = updates.actualTime;
       if (updates.timeSpent !== undefined) updateData.time_spent_c = updates.timeSpent;
       if (updates.isTracking !== undefined) updateData.is_tracking_c = updates.isTracking;
       if (updates.trackingStartedAt !== undefined) updateData.tracking_started_at_c = updates.trackingStartedAt;
       if (updates.notes !== undefined) updateData.notes_c = updates.notes;
-      if (updates.linkedTasks !== undefined) updateData.linked_tasks_c = updates.linkedTasks ? JSON.stringify(updates.linkedTasks) : null;
+if (updates.linkedTasks !== undefined) updateData.linked_tasks_c = updates.linkedTasks ? this.formatLinkedTasksForDatabase(updates.linkedTasks) : null;
       if (updates.externalLinks !== undefined) updateData.external_links_c = updates.externalLinks ? JSON.stringify(updates.externalLinks) : null;
       if (updates.commentCount !== undefined) updateData.comment_count_c = updates.commentCount;
       if (updates.hasUnreadComments !== undefined) updateData.has_unread_comments_c = updates.hasUnreadComments;
@@ -461,9 +461,9 @@ if (updates.parentTaskId !== undefined) updateData.parent_task_id_c = updates.pa
       completed: task.completed_c || false,
       completedAt: task.completed_at_c,
       isRecurring: task.is_recurring_c || false,
-      recurrence: task.recurrence_c ? this.parseJSON(task.recurrence_c) : null,
+recurrence: task.recurrence_c ? this.parseJSON(task.recurrence_c) : null,
       assignedTo: task.assigned_to_c?.Name || task.assigned_to_c,
-      reminders: task.reminders_c ? this.parseJSON(task.reminders_c) : [],
+      reminders: task.reminders_c ? this.parseRemindersFromDatabase(task.reminders_c) : [],
       estimatedTime: task.estimated_time_c,
       actualTime: task.actual_time_c || 0,
       timeSpent: task.time_spent_c || 0,
@@ -471,7 +471,7 @@ if (updates.parentTaskId !== undefined) updateData.parent_task_id_c = updates.pa
       trackingStartedAt: task.tracking_started_at_c,
       notes: task.notes_c || "",
       attachments: task.attachments_c ? this.parseAttachments(task.attachments_c) : [],
-      linkedTasks: task.linked_tasks_c ? this.parseJSON(task.linked_tasks_c) : [],
+linkedTasks: task.linked_tasks_c ? this.parseLinkedTasksFromDatabase(task.linked_tasks_c) : [],
       externalLinks: task.external_links_c ? this.parseJSON(task.external_links_c) : [],
       commentCount: task.comment_count_c || 0,
       hasUnreadComments: task.has_unread_comments_c || false,
@@ -513,7 +513,110 @@ if (updates.parentTaskId !== undefined) updateData.parent_task_id_c = updates.pa
       }
     }
     
-    return [];
+return [];
+  },
+
+  // Helper method to format reminders for MultiPicklist field
+  formatRemindersForDatabase(reminders) {
+    if (!Array.isArray(reminders)) return null;
+    
+    // Convert reminders array to comma-separated string format
+    // MultiPicklist expects: "enabled,minutes,type" format
+    const reminderStrings = reminders
+      .filter(reminder => reminder.enabled)
+      .map(reminder => {
+        if (reminder.type === 'custom') {
+          return `${reminder.type},${reminder.minutes || 60}`;
+        }
+        return reminder.type;
+      });
+    
+    return reminderStrings.length > 0 ? reminderStrings.join(',') : null;
+  },
+
+  // Helper method to format linked tasks for MultiPicklist field
+  formatLinkedTasksForDatabase(linkedTasks) {
+    if (!Array.isArray(linkedTasks)) return null;
+    
+    // Convert linked tasks array to comma-separated string format
+    // MultiPicklist expects: "id,title,type" format
+    const linkedTaskStrings = linkedTasks.map(task => {
+      return `${task.Id || task.id},${task.title},${task.type || 'related'}`;
+    });
+    
+    return linkedTaskStrings.length > 0 ? linkedTaskStrings.join(',') : null;
+  },
+
+  // Helper method to parse reminders from database format
+  parseRemindersFromDatabase(remindersString) {
+    if (!remindersString) return [];
+    
+    try {
+      // If it's already an array (from previous JSON format), return it
+      if (Array.isArray(remindersString)) return remindersString;
+      
+      // If it's JSON string (legacy format), parse it
+      if (remindersString.startsWith('[') || remindersString.startsWith('{')) {
+        return JSON.parse(remindersString);
+      }
+      
+      // Parse comma-separated format from MultiPicklist
+      const reminderTypes = remindersString.split(',');
+      const defaultReminders = [
+        { type: "on_due", enabled: false },
+        { type: "1_day_before", enabled: false },
+        { type: "1_hour_before", enabled: false },
+        { type: "custom", enabled: false, minutes: 60 }
+      ];
+      
+      return defaultReminders.map(reminder => {
+        const isEnabled = reminderTypes.includes(reminder.type);
+        if (reminder.type === 'custom' && isEnabled) {
+          const customIndex = reminderTypes.indexOf('custom');
+          const minutes = customIndex !== -1 && reminderTypes[customIndex + 1] 
+            ? parseInt(reminderTypes[customIndex + 1]) || 60 
+            : 60;
+          return { ...reminder, enabled: true, minutes };
+        }
+        return { ...reminder, enabled: isEnabled };
+      });
+    } catch {
+      return [];
+    }
+  },
+
+  // Helper method to parse linked tasks from database format
+  parseLinkedTasksFromDatabase(linkedTasksString) {
+    if (!linkedTasksString) return [];
+    
+    try {
+      // If it's already an array (from previous JSON format), return it
+      if (Array.isArray(linkedTasksString)) return linkedTasksString;
+      
+      // If it's JSON string (legacy format), parse it
+      if (linkedTasksString.startsWith('[') || linkedTasksString.startsWith('{')) {
+        return JSON.parse(linkedTasksString);
+      }
+      
+      // Parse comma-separated format from MultiPicklist
+      const parts = linkedTasksString.split(',');
+      const linkedTasks = [];
+      
+      // Process in groups of 3 (id,title,type)
+      for (let i = 0; i < parts.length; i += 3) {
+        if (i + 2 < parts.length) {
+          linkedTasks.push({
+            Id: parseInt(parts[i]) || parts[i],
+            title: parts[i + 1],
+            type: parts[i + 2] || 'related'
+          });
+        }
+      }
+      
+      return linkedTasks;
+    } catch {
+      return [];
+    }
   }
 };
 
