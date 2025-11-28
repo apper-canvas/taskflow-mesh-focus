@@ -178,9 +178,6 @@ export const taskService = {
         }
         
         if (successful.length > 0) {
-          const newTask = successful[0].data;
-          showToast.success('Task created successfully! 🎉');
-          
 const newTask = successful[0].data;
           showToast.success('Task created successfully! 🎉');
           
