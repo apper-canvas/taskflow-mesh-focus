@@ -520,6 +520,73 @@ export const buildCommentThreads = (comments) => {
 
   return result;
 };
+// Get comment statistics for a task
+export const getCommentStats = async (taskId) => {
+  try {
+    const apperClient = await getApperClient();
+    if (!apperClient) {
+      throw new Error("ApperClient not initialized");
+    }
+
+    const params = {
+      fields: [
+        {"field": {"Name": "is_unread_c"}},
+        {"field": {"Name": "is_pinned_c"}},
+        {"field": {"Name": "is_resolved_c"}},
+        {"field": {"Name": "parent_id_c"}},
+        {"field": {"Name": "Id"}}
+      ],
+      where: [{
+        "FieldName": "task_id_c",
+        "Operator": "EqualTo",
+        "Values": [parseInt(taskId)],
+        "Include": true
+      }]
+    };
+
+    const response = await apperClient.fetchRecords('comment_c', params);
+
+    if (!response.success) {
+      console.error('Failed to fetch comment stats:', response.message);
+      return {
+        total: 0,
+        unread: 0,
+        pinned: 0,
+        resolved: 0,
+        threads: 0
+      };
+    }
+
+    const comments = response.data || [];
+    
+    // Calculate statistics
+    const total = comments.length;
+    const unread = comments.filter(c => c.is_unread_c === true).length;
+    const pinned = comments.filter(c => c.is_pinned_c === true).length;
+    const resolved = comments.filter(c => c.is_resolved_c === true).length;
+    
+    // Count threads (comments without parent_id_c)
+    const threads = comments.filter(c => !c.parent_id_c).length;
+
+    return {
+      total,
+      unread,
+      pinned,
+      resolved,
+      threads
+    };
+
+  } catch (error) {
+    console.error('Error fetching comment stats:', error);
+    return {
+      total: 0,
+      unread: 0,
+      pinned: 0,
+      resolved: 0,
+      threads: 0
+    };
+  }
+};
 
 // Export default object for compatibility
 const commentService = {
@@ -531,7 +598,8 @@ const commentService = {
   getCommentTopics,
   getTeamMembers,
   buildCommentThreads,
-  isCommentEditable
+  isCommentEditable,
+  getCommentStats
 };
 
 export default commentService;
