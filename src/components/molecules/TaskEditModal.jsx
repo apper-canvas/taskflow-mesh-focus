@@ -248,18 +248,10 @@ const handleRecurringToggle = () => {
 
 const handleRecurringSave = async (taskId, recurringData) => {
     try {
-      if (!taskId) {
-        // For new tasks: create regular task first, then recurring task
-        const regularTaskData = { ...recurringData, isRecurring: false, recurrence: null }
-        await onSave(null, regularTaskData)
-        await onSave(null, { ...recurringData, isRecurring: true })
-        toast.success('Task and recurring schedule created successfully')
-      } else {
-        // For existing tasks: just update with recurring settings
-        await onSave(taskId, { ...recurringData, isRecurring: true })
-        toast.success('Recurring schedule updated successfully')
-      }
+      // Only create recurring task, don't create regular task
+      await onSave(taskId, { ...recurringData, isRecurring: true })
       setShowRecurringModal(false)
+      toast.success('Recurring task created successfully')
     } catch (error) {
       console.error('Failed to save recurring task:', error)
       toast.error('Failed to create recurring task')
@@ -268,18 +260,10 @@ const handleRecurringSave = async (taskId, recurringData) => {
 
 const handleRecurringSaveAndClose = async (taskId, recurringData) => {
     try {
-      if (!taskId) {
-        // For new tasks: create regular task first, then recurring task
-        const regularTaskData = { ...recurringData, isRecurring: false, recurrence: null }
-        await onSave(null, regularTaskData)
-        await onSave(null, { ...recurringData, isRecurring: true })
-        toast.success('Task and recurring schedule created successfully')
-      } else {
-        // For existing tasks: just update with recurring settings
-        await onSave(taskId, { ...recurringData, isRecurring: true })
-        toast.success('Recurring schedule updated successfully')
-      }
+      // Create recurring task and close modal
+      await onSave(taskId, { ...recurringData, isRecurring: true })
       setShowRecurringModal(false)
+      toast.success('Recurring task created successfully')
       onClose() // Close the main modal as well
     } catch (error) {
       console.error('Failed to create recurring task:', error)
