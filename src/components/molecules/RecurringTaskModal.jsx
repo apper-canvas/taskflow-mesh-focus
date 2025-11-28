@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react'
-import { format, addDays, addWeeks, addMonths, addYears, startOfWeek, endOfWeek } from 'date-fns'
-import Modal from '@/components/atoms/Modal'
-import Input from '@/components/atoms/Input'
-import Textarea from '@/components/atoms/Textarea'
-import Select from '@/components/atoms/Select'
-import Button from '@/components/atoms/Button'
-import ApperIcon from '@/components/ApperIcon'
-import TagSelector from '@/components/molecules/TagSelector'
-import { taskService } from '@/services/api/taskService'
-import { cn } from '@/utils/cn'
+import React, { useEffect, useState } from "react";
+import { addDays, addMonths, addWeeks, addYears, endOfWeek, format, startOfWeek } from "date-fns";
+import { taskService } from "@/services/api/taskService";
+import ApperIcon from "@/components/ApperIcon";
+import Textarea from "@/components/atoms/Textarea";
+import Modal from "@/components/atoms/Modal";
+import Select from "@/components/atoms/Select";
+import Button from "@/components/atoms/Button";
+import Input from "@/components/atoms/Input";
+import TagSelector from "@/components/molecules/TagSelector";
+import { cn } from "@/utils/cn";
 
 const RecurringTaskModal = ({ isOpen, onClose, task, onSave, onSaveAndClose, onDelete, isLoading = false }) => {
   const [formData, setFormData] = useState({
@@ -122,23 +122,28 @@ useEffect(() => {
     handleRecurrenceChange('daysOfWeek', newDays)
   }
 
-  const handleTagsChange = (newTags) => {
-    setFormData(prev => ({ ...prev, tags: newTags }))
-  }
+// Helper function to serialize recurrence object to Picklist format
+  const serializeRecurrence = (recurrence) => {
+    if (!recurrence || !recurrence.enabled) return null;
+    
+    // Convert recurrence object to comma-separated values as expected by Picklist
+    const fields = [
+      `type:${recurrence.pattern}`,
+      `interval:${recurrence.interval}`,
+      `startDate:${recurrence.startDate}`,
+      `endDate:${recurrence.endDate || ''}`,
+      `endType:${recurrence.endType}`,
+      `endAfterOccurrences:${recurrence.endAfterOccurrences}`,
+      `pattern:${recurrence.pattern}`,
+      `monthlyType:${recurrence.monthlyType}`,
+      `monthlyDate:${recurrence.monthlyDate}`,
+      `monthlyDay:${recurrence.monthlyDay}`
+    ];
+    
+    return fields.join(',');
+  };
 
-  const updatePreview = () => {
-    try {
-      const { recurrence } = formData
-      if (!recurrence.startDate) return
-
-      const dates = generatePreviewDates(recurrence, 5)
-      setPreviewDates(dates)
-    } catch (error) {
-      setPreviewDates([])
-    }
-  }
-
-  const generatePreviewDates = (recurrence, count = 5) => {
+const generatePreviewDates = (recurrence, count = 5) => {
     const dates = []
     let currentDate = new Date(recurrence.startDate)
     const { pattern, interval, daysOfWeek, monthlyType, monthlyDate, monthlyWeek, monthlyDay } = recurrence
@@ -152,7 +157,7 @@ useEffect(() => {
             currentDate = addDays(currentDate, interval)
             break
           case 'weekly':
-if (daysOfWeek.length > 0) {
+            if (daysOfWeek.length > 0) {
               // Find next occurrence in selected days
               let nextDate = addDays(currentDate, 1)
               while (!daysOfWeek.includes(nextDate.getDay())) {
@@ -186,6 +191,27 @@ if (daysOfWeek.length > 0) {
     }
 
     return dates
+  }
+
+  const updatePreview = () => {
+    try {
+      if (formData.recurrence?.startDate && formData.recurrence?.pattern) {
+        const dates = generatePreviewDates(formData.recurrence)
+        setPreviewDates(dates)
+      } else {
+        setPreviewDates([])
+      }
+    } catch (error) {
+      console.error('Error generating preview dates:', error)
+      setPreviewDates([])
+    }
+  }
+
+  const handleTagsChange = (newTags) => {
+    setFormData(prev => ({ ...prev, tags: newTags }))
+    if (errors.tags) {
+      setErrors(prev => ({ ...prev, tags: null }))
+    }
   }
 
   const validateForm = () => {
