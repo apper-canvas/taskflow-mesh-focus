@@ -310,5 +310,3 @@ const tagService = {
 };
 
 export default tagService;
-
-export default tagService

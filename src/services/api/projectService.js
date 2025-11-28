@@ -595,4 +595,3 @@ const projectService = {
 };
 
 export { projectService };
-export { projectService }

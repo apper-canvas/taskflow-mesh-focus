@@ -470,5 +470,3 @@ const fileService = {
 };
 
 export default fileService;
-
-export default fileService;
