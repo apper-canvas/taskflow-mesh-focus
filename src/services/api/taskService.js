@@ -1,4 +1,6 @@
+import React from "react";
 import { getApperClient } from "@/services/apperClient";
+import { create, getAll, getById, parseJSON, update } from "@/services/api/recurringTaskService";
 import { showToast } from "@/utils/toast";
 export const taskService = {
   async getAll() {
@@ -615,7 +617,263 @@ return [];
       
       return linkedTasks;
     } catch {
+return linkedTasks;
+    } catch {
       return [];
+    }
+  },
+
+// Template-related methods
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const response = await apperClient.fetchRecords('task_template_c', {
+        fields: [
+          {"field": {"Name": "Id"}},
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "title_c"}},
+          {"field": {"Name": "description_c"}},
+          {"field": {"Name": "category_c"}},
+          {"field": {"Name": "priority_c"}},
+          {"field": {"Name": "estimated_time_c"}},
+          {"field": {"Name": "tags_c"}},
+          {"field": {"Name": "icon_c"}},
+          {"field": {"Name": "is_public_c"}},
+          {"field": {"Name": "created_by_c"}},
+          {"field": {"Name": "CreatedOn"}},
+          {"field": {"Name": "ModifiedOn"}}
+        ],
+        orderBy: [{"fieldName": "CreatedOn", "sorttype": "DESC"}]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return [];
+      }
+
+      return response.data.map(template => ({
+        Id: template.Id,
+        name: template.Name || template.title_c || "",
+        title: template.title_c || template.Name || "",
+        description: template.description_c || "",
+        category: template.category_c || "Personal",
+        priority: template.priority_c || "Medium",
+        estimatedTime: template.estimated_time_c || null,
+        tags: template.tags_c ? template.tags_c.split(',').map(t => t.trim()) : [],
+        icon: template.icon_c || "📋",
+        isPublic: template.is_public_c || false,
+        createdBy: template.created_by_c || null,
+        createdAt: template.CreatedOn,
+        updatedAt: template.ModifiedOn
+      }));
+    } catch (error) {
+      console.error("Error fetching task templates:", error);
+      return [];
+    }
+  },
+
+  async getTemplateCategories() {
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const response = await apperClient.fetchRecords('task_template_c', {
+        fields: [{"field": {"Name": "category_c"}}],
+        groupBy: ["category_c"]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        return ["Personal", "Work", "Project", "Meeting", "Other"];
+      }
+
+      const categories = response.data
+        .map(item => item.category_c)
+        .filter(category => category && category.trim() !== "")
+        .filter((category, index, array) => array.indexOf(category) === index);
+
+      return categories.length > 0 ? categories : ["Personal", "Work", "Project", "Meeting", "Other"];
+    } catch (error) {
+      console.error("Error fetching template categories:", error);
+      return ["Personal", "Work", "Project", "Meeting", "Other"];
+    }
+  },
+
+  async createTemplate(templateData) {
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const params = {
+        records: [{
+          Name: templateData.name || templateData.title || "",
+          title_c: templateData.title || templateData.name || "",
+          description_c: templateData.description || "",
+          category_c: templateData.category || "Personal",
+          priority_c: templateData.priority || "Medium",
+          estimated_time_c: templateData.estimatedTime || null,
+          tags_c: Array.isArray(templateData.tags) ? templateData.tags.join(', ') : templateData.tags || "",
+          icon_c: templateData.icon || "📋",
+          is_public_c: templateData.isPublic || false,
+          created_by_c: templateData.createdBy || null
+        }]
+      };
+
+      const response = await apperClient.createRecord('task_template_c', params);
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message || 'Failed to create template');
+      }
+
+      if (response.results) {
+        const successful = response.results.filter(r => r.success);
+        const failed = response.results.filter(r => !r.success);
+        
+        if (failed.length > 0) {
+          console.error(`Failed to create ${failed.length} templates:`, failed);
+          failed.forEach(record => {
+            if (record.message) showToast.error(record.message);
+          });
+        }
+        
+        if (successful.length > 0) {
+          const newTemplate = successful[0].data;
+          showToast.success('Template created successfully! 🎉');
+          
+          return {
+            Id: newTemplate.Id,
+            name: templateData.name || templateData.title || "",
+            title: templateData.title || templateData.name || "",
+            description: templateData.description || "",
+            category: templateData.category || "Personal",
+            priority: templateData.priority || "Medium",
+            estimatedTime: templateData.estimatedTime || null,
+            tags: Array.isArray(templateData.tags) ? templateData.tags : (templateData.tags ? templateData.tags.split(',').map(t => t.trim()) : []),
+            icon: templateData.icon || "📋",
+            isPublic: templateData.isPublic || false,
+            createdBy: templateData.createdBy || null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Error creating template:", error);
+      showToast.error(error.message || 'Failed to create template');
+      throw error;
+    }
+  },
+
+  async deleteTemplate(templateId) {
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const response = await apperClient.deleteRecord('task_template_c', {
+        RecordIds: [parseInt(templateId)]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message || 'Failed to delete template');
+      }
+
+      showToast.success('Template deleted successfully!');
+      return true;
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      showToast.error(error.message || 'Failed to delete template');
+      throw error;
+    }
+  },
+
+  async exportTemplates() {
+    try {
+      const templates = await this.getTemplates();
+      
+      const exportData = {
+        version: "1.0",
+        exportDate: new Date().toISOString(),
+        templates: templates.map(template => ({
+          name: template.name,
+          title: template.title,
+          description: template.description,
+          category: template.category,
+          priority: template.priority,
+          estimatedTime: template.estimatedTime,
+          tags: template.tags,
+          icon: template.icon,
+          isPublic: template.isPublic
+        }))
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `task-templates-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast.success('Templates exported successfully!');
+      return exportData;
+    } catch (error) {
+      console.error("Error exporting templates:", error);
+      showToast.error('Failed to export templates');
+      throw error;
+    }
+  },
+
+  async importTemplates(importData) {
+    try {
+      if (!importData || !importData.templates || !Array.isArray(importData.templates)) {
+        throw new Error('Invalid import data format');
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const templateData of importData.templates) {
+        try {
+          await this.createTemplate({
+            ...templateData,
+            createdBy: null // Reset creator for imported templates
+          });
+          successCount++;
+        } catch (error) {
+          console.error("Error importing template:", templateData.name, error);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        showToast.success(`Successfully imported ${successCount} templates!`);
+      }
+      
+      if (errorCount > 0) {
+        showToast.error(`Failed to import ${errorCount} templates`);
+      }
+
+      return {
+        imported: successCount,
+        failed: errorCount,
+        total: importData.templates.length
+      };
+    } catch (error) {
+      console.error("Error importing templates:", error);
+      showToast.error(error.message || 'Failed to import templates');
+      throw error;
     }
   }
 };
