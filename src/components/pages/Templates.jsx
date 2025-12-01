@@ -358,7 +358,7 @@ onUse(template?.Id)
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2">
-<span className="text-xl">{template.icon || '📋'}</span>
+<span className="text-xl">{(template?.icon && typeof template.icon === 'string') ? template.icon : '📋'}</span>
 <div>
               <h3 className="font-semibold text-gray-900 text-sm">{template?.name || 'Untitled Template'}</h3>
               <Badge variant="secondary" size="sm">{template?.category || 'General'}</Badge>
