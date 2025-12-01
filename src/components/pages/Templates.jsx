@@ -144,11 +144,11 @@ toast.error("Failed to import templates. Please check file format.")
     event.target.value = '' // Reset file input
   }
 
-  const currentTemplates = activeTab === "tasks" ? taskTemplates : projectTemplates
+const currentTemplates = activeTab === "tasks" ? taskTemplates : projectTemplates
   const filteredTemplates = currentTemplates.filter(template => {
-    const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         template.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === "all" || template.category === selectedCategory
+    const matchesSearch = (template?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (template?.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = selectedCategory === "all" || template?.category === selectedCategory
     return matchesSearch && matchesCategory
   })
 
@@ -337,7 +337,7 @@ const TemplateCard = ({ template, type, onDelete, onUse }) => {
   const handleUse = async () => {
     try {
       setIsLoading(true)
-      onUse(template.Id)
+onUse(template?.Id)
       toast.success(`Opening ${type === 'tasks' ? 'task' : 'project'} form with template data! 🎉`)
     } catch (err) {
       console.error("Failed to use template:", err)
@@ -358,10 +358,10 @@ const TemplateCard = ({ template, type, onDelete, onUse }) => {
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-xl">{template.icon}</span>
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm">{template.name}</h3>
-              <Badge variant="secondary" size="sm">{template.category}</Badge>
+<span className="text-xl">{template.icon || '📋'}</span>
+<div>
+              <h3 className="font-semibold text-gray-900 text-sm">{template?.name || 'Untitled Template'}</h3>
+              <Badge variant="secondary" size="sm">{template?.category || 'General'}</Badge>
             </div>
           </div>
           
@@ -375,7 +375,7 @@ const TemplateCard = ({ template, type, onDelete, onUse }) => {
               <ApperIcon name="Play" size={14} />
             </button>
             <button
-              onClick={() => onDelete(template.Id)}
+onClick={() => onDelete(template?.Id)}
               className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors duration-200"
               title="Delete Template"
             >
@@ -384,13 +384,13 @@ const TemplateCard = ({ template, type, onDelete, onUse }) => {
           </div>
         </div>
         
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-          {template.description || "No description provided"}
+<p className="text-sm text-gray-600 mb-3 line-clamp-2">
+          {template?.description || "No description provided"}
         </p>
         
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Used {template.usageCount || 0} times</span>
-          {template.subtasks?.length > 0 && (
+<div className="flex items-center justify-between text-xs text-gray-500">
+          <span>Used {template?.usageCount || 0} times</span>
+          {template?.subtasks?.length > 0 && (
             <span>{template.subtasks.length} subtasks</span>
           )}
         </div>
