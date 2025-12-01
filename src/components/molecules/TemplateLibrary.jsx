@@ -189,7 +189,7 @@ const TemplateLibraryCard = ({ template, onUse, onPreview }) => {
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xl">{template.icon}</span>
+<span className="text-xl">{typeof template?.icon === 'string' ? template.icon : (typeof template?.icon === 'object' && template?.icon?.name) ? template.icon.name : '📋'}</span>
           <div>
             <h3 className="font-semibold text-gray-900 text-sm">{template.name}</h3>
             <div className="flex items-center gap-2 mt-1">
@@ -255,7 +255,7 @@ const TemplatePreview = ({ template, onClose, onUse }) => {
       >
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">{template.icon}</span>
+<span className="text-2xl">{typeof template?.icon === 'string' ? template.icon : (typeof template?.icon === 'object' && template?.icon?.name) ? template.icon.name : '📋'}</span>
             <div>
               <h3 className="font-semibold text-gray-900">{template.name}</h3>
               <Badge variant="secondary" size="sm">{template.category}</Badge>
