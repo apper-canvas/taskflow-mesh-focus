@@ -426,7 +426,7 @@ const taskData = {
       tags: formData.tags,
       isRecurring: false, // Regular task creation is separate from recurring
       recurrence: null,   // Recurring data handled separately
-      assignedTo: formData.assignedTo,
+assignedTo: formData.assignedTo?.id || null,
       reminders: formData.reminders,
       estimatedTime: formData.estimatedTime ? parseInt(formData.estimatedTime) : null,
       actualTime: formData.actualTime || 0,

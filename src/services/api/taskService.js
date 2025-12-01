@@ -156,7 +156,7 @@ linked_tasks_c: taskData.linkedTasks ? this.formatLinkedTasksForDatabase(taskDat
           completed_subtasks_c: 0,
           project_id_c: taskData.projectId || null,
           parent_task_id_c: taskData.parentTaskId || null,
-          assigned_to_c: taskData.assignedTo || null,
+assigned_to_c: taskData.assignedTo?.id || taskData.assignedTo || null,
           attachments_c: processedAttachments
         }]
       };
@@ -262,7 +262,7 @@ const newTask = successful[0].data;
       if (updates.dueDateTime !== undefined) updateData.due_date_time_c = updates.dueDateTime;
       if (updates.isRecurring !== undefined) updateData.is_recurring_c = updates.isRecurring;
       if (updates.recurrence !== undefined) updateData.recurrence_c = updates.recurrence ? JSON.stringify(updates.recurrence) : null;
-      if (updates.assignedTo !== undefined) updateData.assigned_to_c = updates.assignedTo;
+if (updates.assignedTo !== undefined) updateData.assigned_to_c = updates.assignedTo?.id || updates.assignedTo;
 if (updates.reminders !== undefined) updateData.reminders_c = updates.reminders ? this.formatRemindersForDatabase(updates.reminders) : null;
       if (updates.estimatedTime !== undefined) updateData.estimated_time_c = updates.estimatedTime;
       if (updates.actualTime !== undefined) updateData.actual_time_c = updates.actualTime;
