@@ -559,6 +559,45 @@ const projectService = {
     
     return builtInTemplates;
   },
+// Get built-in project template categories
+  async getTemplateCategories() {
+    const builtInCategories = [
+      {
+        Id: 1,
+        name: 'Technology',
+        description: 'Software development, IT infrastructure, and technology projects',
+        icon: '💻',
+        color: '#3b82f6',
+        templateCount: 5
+      },
+      {
+        Id: 2,
+        name: 'Business',
+        description: 'Business planning, strategy, and operational projects',
+        icon: '📊',
+        color: '#10b981',
+        templateCount: 3
+      },
+      {
+        Id: 3,
+        name: 'Marketing',
+        description: 'Marketing campaigns, content creation, and promotional projects',
+        icon: '📢',
+        color: '#f59e0b',
+        templateCount: 4
+      },
+      {
+        Id: 4,
+        name: 'Education',
+        description: 'Learning, training, and educational project templates',
+        icon: '🎓',
+        color: '#8b5cf6',
+        templateCount: 2
+      }
+    ];
+    
+    return builtInCategories;
+  },
 
   // Create project from template
   async createFromTemplate(templateId, projectData) {
