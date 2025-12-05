@@ -47,6 +47,8 @@ const response = await apperClient.fetchRecords('task_c', {
           {"field": {"Name": "parent_task_id_c"}},
           {"field": {"Name": "assigned_to_c"}},
           {"field": {"Name": "attachments_c"}},
+          {"field": {"Name": "Owner"}},
+          {"field": {"Name": "CreatedBy"}},
           {"field": {"Name": "CreatedOn"}},
           {"field": {"Name": "ModifiedOn"}}
         ],
@@ -72,7 +74,7 @@ const response = await apperClient.fetchRecords('task_c', {
         throw new Error("ApperClient not initialized");
       }
 
-      const response = await apperClient.getRecordById('task_c', id, {
+const response = await apperClient.getRecordById('task_c', id, {
         fields: [
           {"field": {"Name": "Id"}},
           {"field": {"Name": "Name"}},
@@ -89,6 +91,8 @@ const response = await apperClient.fetchRecords('task_c', {
           {"field": {"Name": "parent_task_id_c"}},
           {"field": {"Name": "assigned_to_c"}},
           {"field": {"Name": "attachments_c"}},
+          {"field": {"Name": "Owner"}},
+          {"field": {"Name": "CreatedBy"}},
           {"field": {"Name": "CreatedOn"}},
           {"field": {"Name": "ModifiedOn"}}
         ]
@@ -156,7 +160,7 @@ linked_tasks_c: taskData.linkedTasks ? this.formatLinkedTasksForDatabase(taskDat
           completed_subtasks_c: 0,
           project_id_c: taskData.projectId || null,
           parent_task_id_c: taskData.parentTaskId || null,
-assigned_to_c: taskData.assignedTo?.id || taskData.assignedTo || null,
+assigned_to_c: taskData.assignedTo?.Id || taskData.assignedTo || null,
           attachments_c: processedAttachments
         }]
       };
@@ -465,6 +469,8 @@ if (updates.parentTaskId !== undefined) updateData.parent_task_id_c = updates.pa
       isRecurring: task.is_recurring_c || false,
 recurrence: task.recurrence_c ? this.parseJSON(task.recurrence_c) : null,
       assignedTo: task.assigned_to_c?.Name || task.assigned_to_c,
+      owner: task.Owner?.Name || task.Owner,
+      createdBy: task.CreatedBy?.Name || task.CreatedBy,
       reminders: task.reminders_c ? this.parseRemindersFromDatabase(task.reminders_c) : [],
       estimatedTime: task.estimated_time_c,
       actualTime: task.actual_time_c || 0,

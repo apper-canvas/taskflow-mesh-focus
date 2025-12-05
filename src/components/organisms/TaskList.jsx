@@ -204,12 +204,13 @@ const TaskList = ({
                 </span>
               </div>
 
-              <div className="grid gap-3">
+<div className="grid gap-3">
                 <AnimatePresence>
                   {categoryTasks.map(task => (
                     <TaskCard
                       key={task.Id}
                       task={task}
+                      showCreator={true}
                       onToggleComplete={(taskId, completed) => handleTaskAction(task, 'toggle', taskId, completed)}
                       onEdit={() => handleTaskAction(task, 'edit')}
                       onDelete={() => handleTaskAction(task, 'delete')}
@@ -254,10 +255,11 @@ const TaskList = ({
 
           <div className="grid gap-3">
             <AnimatePresence>
-              {activeTasks.map(task => (
+{activeTasks.map(task => (
                 <TaskCard
                   key={task.Id}
                   task={task}
+                  showCreator={true}
                   onToggleComplete={(taskId, completed) => handleTaskAction(task, 'toggle', taskId, completed)}
                   onEdit={() => handleTaskAction(task, 'edit')}
                   onDelete={() => handleTaskAction(task, 'delete')}
@@ -290,11 +292,12 @@ const TaskList = ({
           </div>
 
           <div className="grid gap-3">
-            <AnimatePresence>
+<AnimatePresence>
               {completedTasks.map(task => (
                 <TaskCard
                   key={task.Id}
                   task={task}
+                  showCreator={true}
                   onToggleComplete={(taskId, completed) => handleTaskAction(task, 'toggle', taskId, completed)}
                   onEdit={() => handleTaskAction(task, 'edit')}
                   onDelete={() => handleTaskAction(task, 'delete')}
