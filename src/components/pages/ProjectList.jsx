@@ -88,10 +88,10 @@ const handleDeleteProject = async (projectId) => {
       toast.error('Failed to delete project')
     }
   }
-  const filteredAndSortedProjects = projects
+const filteredAndSortedProjects = projects
     .filter(project => {
-      const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           project.description.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesSearch = (project.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (project.description || '').toLowerCase().includes(searchTerm.toLowerCase())
       const matchesStatus = statusFilter === "all" || project.status === statusFilter
       return matchesSearch && matchesStatus
     })
